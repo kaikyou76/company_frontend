@@ -49,24 +49,39 @@ class CsrfService {
         baseURL: this.baseURL,
         timeout: 10000,
         withCredentials: true,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
       });
 
       const response = await csrfAxios.get<CsrfTokenResponse>('/csrf/token');
-      
+
       if (response.data.success) {
         this.token = response.data.csrfToken;
         // 有効期限を現在時刻 + expiresIn秒で設定
         this.expiresAt = Date.now() + (response.data.expiresIn * 1000);
+
+        // CSRFトークンをCookieからも確認（Double Submit Cookie パターン）
+        if (typeof window !== 'undefined') {
+          const cookieToken = this.getCsrfTokenFromCookie();
+          if (cookieToken && cookieToken !== this.token) {
+            console.warn('CSRFトークンがCookieと一致しません。Cookieのトークンを使用します。');
+            this.token = cookieToken;
+          }
+        }
+
+        console.log('CSRFトークン取得成功:', this.token);
         return this.token;
       } else {
         throw new Error(response.data.message || 'CSRFトークンの取得に失敗しました');
       }
     } catch (error: any) {
       console.error('CSRFトークン取得エラー:', error);
-      
+
       // エラーメッセージを日本語化
       let errorMessage = 'CSRFトークンの取得に失敗しました';
-      
+
       if (error.response) {
         // サーバーからのエラーレスポンス
         if (error.response.status === 401) {
@@ -82,7 +97,7 @@ class CsrfService {
         // ネットワークエラー
         errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
       }
-      
+
       throw new Error(errorMessage);
     }
   }
@@ -120,6 +135,37 @@ class CsrfService {
    */
   getTokenExpiration(): Date | null {
     return this.expiresAt ? new Date(this.expiresAt) : null;
+  }
+
+  /**
+   * CookieからCSRFトークンを取得
+   */
+  private getCsrfTokenFromCookie(): string | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'CSRF-TOKEN') {
+        return decodeURIComponent(value);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * アプリケーション初期化時にCSRFトークンを事前取得
+   */
+  async initializeCsrfToken(): Promise<void> {
+    try {
+      await this.getCsrfToken();
+      console.log('CSRF初期化完了');
+    } catch (error) {
+      console.error('CSRF初期化失敗:', error);
+      // 初期化失敗は致命的ではないため、エラーをスローしない
+    }
   }
 }
 

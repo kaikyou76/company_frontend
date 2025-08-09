@@ -90,6 +90,8 @@ api.interceptors.response.use(
     if (error.response?.status === 403 && !originalRequest._csrfRetry) {
       // CSRF関連エラーの可能性があるため、CSRFトークンをリフレッシュして再試行
       try {
+        console.log('403エラー検出、CSRFトークンを再取得します');
+        
         // CSRFトークンをクリアして新しいトークンを取得
         csrfService.clearToken();
         const newCsrfToken = await csrfService.refreshCsrfToken();
@@ -99,12 +101,27 @@ api.interceptors.response.use(
         // 無限ループを防ぐためのフラグを設定
         originalRequest._csrfRetry = true;
         
+        console.log('CSRFトークン再取得成功、リクエストを再実行します');
+        
         // 元のリクエストを再実行
         return api(originalRequest);
       } catch (csrfError) {
         console.error('CSRFトークンの再取得に失敗:', csrfError);
-        // CSRFトークンの再取得に失敗した場合は、元のエラーを返す
-        return Promise.reject(error);
+        
+        // CSRFエラーの場合は、より詳細なエラーメッセージを提供
+        const csrfErrorResponse = {
+          ...error,
+          response: {
+            ...error.response,
+            data: {
+              ...error.response?.data,
+              message: 'セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。',
+              csrfError: true
+            }
+          }
+        };
+        
+        return Promise.reject(csrfErrorResponse);
       }
     }
     

@@ -31,6 +31,7 @@ export interface RegisterResponse {
     createdAt: string;                // 创建时间
   };
   errors?: Record<string, string[]>; // 可选的错误详情
+  csrfError?: boolean;               // CSRF関連エラーフラグ
 }
 
 // 用户登录请求类型接口
@@ -58,6 +59,7 @@ export interface LoginResponse {
     locationType: string;    // 位置类型
   };
   message?: string;      // 响应消息
+  csrfError?: boolean;   // CSRF関連エラーフラグ
 }
 
 // 用户信息类型接口

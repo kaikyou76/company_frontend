@@ -65,10 +65,15 @@ export const registerUser = async (
       if (error.response.status === 403) {
         // CSRF関連エラーかどうかを判定
         const errorMessage = error.response.data.message || '';
-        if (errorMessage.includes('CSRF') || errorMessage.includes('token')) {
+        const isCsrfError = errorMessage.includes('CSRF') ||
+          errorMessage.includes('token') ||
+          error.response.data.csrfError === true;
+
+        if (isCsrfError) {
           return {
             success: false,
             message: "セキュリティトークンの検証に失敗しました。ページを再読み込みして再試行してください。",
+            csrfError: true
           };
         } else {
           return {
@@ -107,25 +112,46 @@ export const registerUser = async (
   }
 };
 
+// ユーザー名チェックレスポンスの型定義
+interface UsernameCheckResponse {
+  available: boolean;
+  csrfError?: boolean;
+}
+
 // 检查用户名是否可用的API函数
-// 接收用户名作为参数，返回Promise<{ available: boolean }>
-export const checkUsername = async (username: string): Promise<{ available: boolean }> => {
+// 接收用户名作为参数，返回Promise<UsernameCheckResponse>
+export const checkUsername = async (username: string): Promise<UsernameCheckResponse> => {
   try {
     // 使用axios实例向/auth/check-username端点发送GET请求
     // 通过查询参数传递用户名
     const response = await api.get(`/auth/check-username?username=${encodeURIComponent(username)}`);
-    
+
     // 返回响应数据中的available字段
     return { available: response.data.available };
   } catch (error: any) {
     // 统一错误处理逻辑
     console.error('检查用户名时出错:', error);
-    
+
+    // CSRF関連エラーのチェック
+    if (error.response?.status === 403) {
+      const errorMessage = error.response.data.message || '';
+      const isCsrfError = errorMessage.includes('CSRF') ||
+        errorMessage.includes('token') ||
+        error.response.data.csrfError === true;
+
+      if (isCsrfError) {
+        return {
+          available: false,
+          csrfError: true
+        };
+      }
+    }
+
     // 如果错误响应中包含available字段，返回该值
     if (error.response?.data?.available !== undefined) {
       return { available: error.response.data.available };
     }
-    
+
     // 网络错误或其他异常情况，默认返回用户名不可用
     return { available: false };
   }

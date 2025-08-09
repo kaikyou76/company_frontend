@@ -71,13 +71,27 @@ const RegisterPage = () => {
           const result = await dispatch(checkUsernameAsync(username));
           // 如果检查成功，更新用户名是否可用状态
           if (checkUsernameAsync.fulfilled.match(result)) {
-            setIsUsernameAvailable(result.payload);
+            const payload = result.payload as any;
+            if (payload.csrfError) {
+              setCsrfError('セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。');
+              setIsUsernameAvailable(null);
+            } else {
+              setIsUsernameAvailable(payload.available || payload);
+            }
+          } else if (checkUsernameAsync.rejected.match(result)) {
+            // 检查失败时的处理
+            const errorPayload = result.payload as any;
+            if (errorPayload?.csrfError) {
+              setCsrfError('セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。');
+            }
+            setIsUsernameAvailable(false);
           }
         } catch (error: any) {
           console.error('检查用户名时出错:', error);
-          if (error.message && error.message.includes('CSRF')) {
+          if (error.message && (error.message.includes('CSRF') || error.message.includes('セキュリティトークン'))) {
             setCsrfError('セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。');
           }
+          setIsUsernameAvailable(false);
         }
       }, 500);
       
@@ -123,10 +137,19 @@ const RegisterPage = () => {
     
     try {
       // 调用注册异步操作
-      await dispatch(registerUserAsync(data));
+      const result = await dispatch(registerUserAsync(data));
+      
+      // 登録が失敗した場合のCSRFエラーチェック
+      if (registerUserAsync.rejected.match(result)) {
+        const errorPayload = result.payload as any;
+        if (errorPayload?.csrfError || 
+            (errorPayload?.message && errorPayload.message.includes('セキュリティトークン'))) {
+          setCsrfError('セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。');
+        }
+      }
     } catch (error: any) {
       console.error('注册过程中出错:', error);
-      if (error.message && error.message.includes('CSRF')) {
+      if (error.message && (error.message.includes('CSRF') || error.message.includes('セキュリティトークン'))) {
         setCsrfError('セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。');
       }
     }
