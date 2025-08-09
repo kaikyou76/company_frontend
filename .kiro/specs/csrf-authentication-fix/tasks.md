@@ -2,7 +2,9 @@
 
 ## Backend Tasks
 
-- [ ] 1. バックエンドCSRFController修正
+- [x] 1. バックエンドCSRFController修正
+
+
   - CsrfController.javaのgetCsrfTokenメソッドからJWT認証要求を削除
   - セッションIDの代わりに一意識別子（UUID等）を使用
   - 未認証ユーザーでもCSRFトークンを取得可能にする
@@ -11,11 +13,14 @@
 ## Frontend Tasks
 
 - [ ] 2. CSRFサービス実装
-  - [ ] 2.1 CSRFサービスの基本構造作成
+  - [x] 2.1 CSRFサービスの基本構造作成
+
+
     - src/app/services/csrfService.tsファイルを作成
     - CSRFトークン取得、管理、有効性チェック機能を実装
     - TypeScript型定義を追加
     - _Requirements: 1.1, 2.2_
+
 
   - [ ] 2.2 CSRFトークン管理機能実装
     - トークンのメモリ内保存機能
@@ -23,14 +28,20 @@
     - 自動リフレッシュ機能
     - _Requirements: 1.2, 2.2_
 
+
+
 - [ ] 3. API Service拡張
   - [ ] 3.1 リクエストインターセプター拡張
     - api.tsのリクエストインターセプターにCSRFトークン自動追加機能を実装
+
+
     - X-CSRF-TOKENヘッダーの自動設定
     - CSRFトークンが存在しない場合の自動取得
     - _Requirements: 1.1, 4.3_
 
-  - [ ] 3.2 レスポンスインターセプター拡張
+  - [x] 3.2 レスポンスインターセプター拡張
+
+
     - 403エラー時のCSRF関連エラー判定機能
     - CSRF失敗時の自動リトライ機能（最大1回）
     - エラー分類とハンドリングの改善
@@ -43,11 +54,19 @@
     - 日本語エラーメッセージの追加
     - _Requirements: 2.1, 2.2_
 
-- [ ] 5. 型定義拡張
+
+
+
+
+- [x] 5. 型定義拡張
+
+
   - [ ] 5.1 CSRF関連型定義追加
     - src/app/types/auth.tsにCSRF関連インターフェース追加
     - CsrfTokenResponse、CsrfErrorResponse型の定義
     - エラーハンドリング用の型定義
+
+
     - _Requirements: 1.1, 2.1_
 
 - [ ] 6. Redux Store統合

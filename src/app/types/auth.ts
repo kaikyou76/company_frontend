@@ -73,3 +73,28 @@ export interface User {
   role: string;            // 用户角色
   locationType: string;    // 位置类型
 }
+
+// CSRF関連の型定義
+export interface CsrfTokenResponse {
+  success: boolean;
+  csrfToken: string;
+  expiresIn: number;
+  message: string;
+}
+
+export interface CsrfErrorResponse {
+  success: false;
+  message: string;
+  code?: string;
+}
+
+// 認証状態の型定義
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  error: string | null;
+  registerSuccess: boolean;
+}

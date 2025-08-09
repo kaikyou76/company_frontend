@@ -5,16 +5,7 @@ import { registerUser, checkUsername, loginUser } from './services/authService';
 // 从本地类型定义文件导入认证相关的类型
 import { RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, User, AuthState } from './types/auth';
 
-// 定义认证状态的接口类型
-interface AuthState {
-  user: User | null; // 当前用户信息，可以是User对象或null
-  token: string | null; // 认证令牌，可以是字符串或null
-  refreshToken: string | null; // 刷新令牌，可以是字符串或null
-  isAuthenticated: boolean; // 是否已认证的布尔值
-  loading: boolean; // 是否正在加载的布尔值
-  error: string | null; // 错误信息，可以是字符串或null
-  registerSuccess: boolean; // 注册是否成功的布尔值
-}
+// AuthStateは既にtypes/auth.tsで定義されているため、ここでは削除
 
 // 定义初始状态
 const initialState: AuthState = {

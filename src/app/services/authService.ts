@@ -47,6 +47,7 @@ export const registerUser = async (
   userData: RegisterRequest
 ): Promise<RegisterResponse> => {
   try {
+
     // 使用axios实例向/auth/register端点发送POST请求
     // 注意：api是通过axios.create()创建的实例，它继承了axios的所有方法如post、get等
     // 泛型参数<RegisterResponse>指定响应数据的类型
@@ -62,10 +63,19 @@ export const registerUser = async (
     if (error.response && error.response.data) {
       // 特别处理403错误
       if (error.response.status === 403) {
-        return {
-          success: false,
-          message: "访问被拒绝，请检查您的权限或稍后再试",
-        };
+        // CSRF関連エラーかどうかを判定
+        const errorMessage = error.response.data.message || '';
+        if (errorMessage.includes('CSRF') || errorMessage.includes('token')) {
+          return {
+            success: false,
+            message: "セキュリティトークンの検証に失敗しました。ページを再読み込みして再試行してください。",
+          };
+        } else {
+          return {
+            success: false,
+            message: "アクセスが拒否されました。権限を確認してください。",
+          };
+        }
       }
 
       // 处理后端验证错误
@@ -76,7 +86,7 @@ export const registerUser = async (
         );
         return {
           success: false,
-          message: `验证失败: ${errorMessages.join("; ")}`,
+          message: `入力内容に問題があります: ${errorMessages.join("; ")}`,
         };
       }
 
@@ -86,13 +96,13 @@ export const registerUser = async (
       // 网络错误或服务器未响应
       return {
         success: false,
-        message: "无法连接到服务器，请检查网络连接或稍后再试",
+        message: "サーバーに接続できません。ネットワーク接続を確認してください。",
       };
     }
     // 返回默认错误响应
     return {
       success: false,
-      message: "网络错误，请稍后重试",
+      message: "ネットワークエラーが発生しました。しばらく待ってから再試行してください。",
     };
   }
 };

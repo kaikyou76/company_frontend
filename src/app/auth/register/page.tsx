@@ -31,6 +31,8 @@ const RegisterPage = () => {
   const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
   // 使用useState钩子管理用户名检查延迟状态
   const [usernameCheckDebounce, setUsernameCheckDebounce] = useState<NodeJS.Timeout | null>(null);
+  // 使用useState钩子管理CSRF错误状态
+  const [csrfError, setCsrfError] = useState<string | null>(null);
   
   // 使用react-hook-form的useForm钩子初始化表单
   // register用于注册表单字段
@@ -64,15 +66,18 @@ const RegisterPage = () => {
       
       // 设置新的延迟检查
       const debounce = setTimeout(async () => {
-        // 派发检查用户名异步操作
-        const result = await dispatch(checkUsernameAsync(username));
-        // 如果检查成功，更新用户名是否可用状态
-        if (checkUsernameAsync.fulfilled.match(result)) {
-          setIsUsernameAvailable(result.payload);
-        } else if (checkUsernameAsync.rejected.match(result)) {
-          // 如果检查失败，将用户名状态设为false（不可用）
-          // 避免误导用户认为用户名可用
-          setIsUsernameAvailable(false);
+        try {
+          // 派发检查用户名异步操作
+          const result = await dispatch(checkUsernameAsync(username));
+          // 如果检查成功，更新用户名是否可用状态
+          if (checkUsernameAsync.fulfilled.match(result)) {
+            setIsUsernameAvailable(result.payload);
+          }
+        } catch (error: any) {
+          console.error('检查用户名时出错:', error);
+          if (error.message && error.message.includes('CSRF')) {
+            setCsrfError('セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。');
+          }
         }
       }, 500);
       
@@ -114,8 +119,17 @@ const RegisterPage = () => {
   const onSubmit = async (data: RegisterRequest) => {
     // 清除之前的错误信息
     dispatch(clearError());
-    // 调用注册异步操作
-    await dispatch(registerUserAsync(data));
+    setCsrfError(null);
+    
+    try {
+      // 调用注册异步操作
+      await dispatch(registerUserAsync(data));
+    } catch (error: any) {
+      console.error('注册过程中出错:', error);
+      if (error.message && error.message.includes('CSRF')) {
+        setCsrfError('セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。');
+      }
+    }
   };
   
   // 渲染组件UI
@@ -152,8 +166,39 @@ const RegisterPage = () => {
             </div>
           )}
           
+          {/* 显示CSRF错误消息 */}
+          {csrfError && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  {/* 错误图标 */}
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    CSRF 错误
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>{csrfError}</p>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="font-medium text-red-800 hover:text-red-900"
+                      >
+                        点击这里重新加载页面
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* 显示错误消息 */}
-          {error && (
+          {error && !csrfError && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
