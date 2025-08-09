@@ -44,7 +44,7 @@ export default function LandingPage() {
                 ログイン
               </button>
               <Link
-                href="/dashboard"
+                href="/auth/login"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 ダッシュボードを見る
@@ -213,7 +213,7 @@ export default function LandingPage() {
             <div className="relative">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8">
                 <img
-                  src="/api/placeholder/500/400"
+                  src="https://placehold.co/500x400"
                   alt="チームワーク"
                   className="w-full h-auto rounded-lg shadow-lg"
                 />

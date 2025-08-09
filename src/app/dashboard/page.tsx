@@ -81,7 +81,7 @@ export default function Dashboard() {
               </button>
               <div className="flex items-center space-x-2">
                 <img
-                  src="/api/placeholder/32/32"
+                  src="https://placehold.co/32x32"
                   alt="プロフィール"
                   className="w-8 h-8 rounded-full"
                 />
