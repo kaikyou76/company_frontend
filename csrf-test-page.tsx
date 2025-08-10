@@ -52,11 +52,27 @@ const CsrfTestPage = () => {
         positionId: 1
       };
 
+      console.log('登録テスト開始:', testData);
+      
       const response = await api.post('/auth/register', testData);
       setTestResult(`登録テスト成功: ${JSON.stringify(response.data, null, 2)}`);
     } catch (error: any) {
       console.error('登録テストエラー:', error);
-      setTestResult(`登録テストエラー: ${error.response?.data?.message || error.message}`);
+      
+      let errorDetails = '';
+      if (error.response) {
+        errorDetails = `
+ステータス: ${error.response.status}
+ヘッダー: ${JSON.stringify(error.response.headers, null, 2)}
+データ: ${JSON.stringify(error.response.data, null, 2)}
+        `;
+      } else if (error.request) {
+        errorDetails = `リクエストエラー: ${error.request}`;
+      } else {
+        errorDetails = `エラー: ${error.message}`;
+      }
+      
+      setTestResult(`登録テストエラー:\n${errorDetails}`);
     } finally {
       setLoading(false);
     }

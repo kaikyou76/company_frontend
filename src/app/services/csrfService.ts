@@ -65,9 +65,12 @@ class CsrfService {
         // CSRFトークンをCookieからも確認（Double Submit Cookie パターン）
         if (typeof window !== 'undefined') {
           const cookieToken = this.getCsrfTokenFromCookie();
+          console.log('Cookieからのトークン:', cookieToken ? cookieToken.substring(0, 10) + '...' : 'なし');
+          console.log('レスポンスからのトークン:', this.token ? this.token.substring(0, 10) + '...' : 'なし');
+
+          // Cookieのトークンが存在し、レスポンスのトークンと異なる場合は警告
           if (cookieToken && cookieToken !== this.token) {
-            console.warn('CSRFトークンがCookieと一致しません。Cookieのトークンを使用します。');
-            this.token = cookieToken;
+            console.warn('CSRFトークンがCookieと一致しません。レスポンスのトークンを優先します。');
           }
         }
 
@@ -146,12 +149,17 @@ class CsrfService {
     }
 
     const cookies = document.cookie.split(';');
+    const possibleNames = ['CSRF-TOKEN', 'XSRF-TOKEN', '_csrf'];
+
     for (let cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
-      if (name === 'CSRF-TOKEN') {
+      if (possibleNames.includes(name)) {
+        console.log(`Cookie発見: ${name} = ${value ? value.substring(0, 10) + '...' : 'empty'}`);
         return decodeURIComponent(value);
       }
     }
+
+    console.log('CSRFトークンのCookieが見つかりません');
     return null;
   }
 

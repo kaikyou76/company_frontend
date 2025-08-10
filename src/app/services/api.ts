@@ -28,25 +28,30 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // CSRFトークンの自動追加
     // CSRFトークン取得エンドポイント以外の場合にCSRFトークンを追加
     if (config.url && !config.url.includes('/csrf/token')) {
       try {
         const csrfToken = await csrfService.getCsrfToken();
+        // Spring SecurityのデフォルトCSRFヘッダー名を使用
+        config.headers['X-XSRF-TOKEN'] = csrfToken;
+        // 念のため、カスタムヘッダーも追加
         config.headers['X-CSRF-TOKEN'] = csrfToken;
+
+        console.log('CSRFトークンをリクエストに追加:', csrfToken.substring(0, 10) + '...');
       } catch (error) {
         console.error('CSRFトークン取得エラー:', error);
         // CSRFトークン取得に失敗した場合、エラーをスローしてリクエストを中止
         throw error;
       }
     }
-    
+
     // 确保Content-Type设置正确
     if (config.data && !(config.data instanceof FormData)) {
       config.headers['Content-Type'] = 'application/json';
     }
-    
+
     // 返回配置对象，这个对象将被用于实际的HTTP请求
     return config;
   },
@@ -72,7 +77,7 @@ api.interceptors.response.use(
     // 对响应错误做点什么
     // error参数包含了错误信息，如响应状态码、错误消息等
     const originalRequest = error.config;
-    
+
     // 如果是401未授权错误
     if (error.response?.status === 401) {
       // token过期或无效，清除本地存储并跳转到登录页
@@ -85,29 +90,36 @@ api.interceptors.response.use(
         // router.push('/login');
       }
     }
-    
+
     // 403エラーの場合、CSRF関連エラーかどうかをチェック
     if (error.response?.status === 403 && !originalRequest._csrfRetry) {
       // CSRF関連エラーの可能性があるため、CSRFトークンをリフレッシュして再試行
       try {
         console.log('403エラー検出、CSRFトークンを再取得します');
-        
+        console.log('元のリクエスト:', {
+          url: originalRequest.url,
+          method: originalRequest.method,
+          headers: originalRequest.headers
+        });
+
         // CSRFトークンをクリアして新しいトークンを取得
         csrfService.clearToken();
         const newCsrfToken = await csrfService.refreshCsrfToken();
-        
-        // 元のリクエストにCSRFトークンを設定
+
+        // 元のリクエストにCSRFトークンを設定（複数のヘッダー名で送信）
+        originalRequest.headers['X-XSRF-TOKEN'] = newCsrfToken;
         originalRequest.headers['X-CSRF-TOKEN'] = newCsrfToken;
         // 無限ループを防ぐためのフラグを設定
         originalRequest._csrfRetry = true;
-        
+
         console.log('CSRFトークン再取得成功、リクエストを再実行します');
-        
+        console.log('新しいCSRFトークン:', newCsrfToken.substring(0, 10) + '...');
+
         // 元のリクエストを再実行
         return api(originalRequest);
       } catch (csrfError) {
         console.error('CSRFトークンの再取得に失敗:', csrfError);
-        
+
         // CSRFエラーの場合は、より詳細なエラーメッセージを提供
         const csrfErrorResponse = {
           ...error,
@@ -120,11 +132,11 @@ api.interceptors.response.use(
             }
           }
         };
-        
+
         return Promise.reject(csrfErrorResponse);
       }
     }
-    
+
     // 返回被拒绝的Promise
     return Promise.reject(error);
   }
