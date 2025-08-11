@@ -3,6 +3,22 @@ import axios from 'axios';
 // CSRFサービスをインポート
 import csrfService from './csrfService';
 
+// CookieからCSRFトークンを直接取得する関数
+function getCsrfTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'XSRF-TOKEN') {
+      return decodeURIComponent(value || '');
+    }
+  }
+  return null;
+}
+
 // 创建axios实例，配置基础URL和超时时间
 // 通过axios.create()创建的实例继承了axios的所有方法，包括get、post、put、delete等
 const api = axios.create({
@@ -33,13 +49,21 @@ api.interceptors.request.use(
     // CSRFトークン取得エンドポイント以外の場合にCSRFトークンを追加
     if (config.url && !config.url.includes('/csrf/token')) {
       try {
-        const csrfToken = await csrfService.getCsrfToken();
+        // Cookieから直接CSRFトークンを取得（最優先）
+        let csrfToken = getCsrfTokenFromCookie();
+        
+        // Cookieにない場合はサービスから取得
+        if (!csrfToken) {
+          csrfToken = await csrfService.getCsrfToken();
+        }
+        
         // Spring SecurityのデフォルトCSRFヘッダー名を使用
-        config.headers['X-XSRF-TOKEN'] = csrfToken;
-        // 念のため、カスタムヘッダーも追加
-        config.headers['X-CSRF-TOKEN'] = csrfToken;
-
-        console.log('CSRFトークンをリクエストに追加:', csrfToken.substring(0, 10) + '...');
+        if (csrfToken) {
+          config.headers['X-XSRF-TOKEN'] = csrfToken;
+          console.log('CSRFトークンをリクエストに追加:', csrfToken.substring(0, 10) + '...');
+        } else {
+          console.warn('CSRFトークンが利用できません');
+        }
       } catch (error) {
         console.error('CSRFトークン取得エラー:', error);
         // CSRFトークン取得に失敗した場合、エラーをスローしてリクエストを中止
@@ -91,49 +115,34 @@ api.interceptors.response.use(
       }
     }
 
-    // 403エラーの場合、CSRF関連エラーかどうかをチェック
-    if (error.response?.status === 403 && !originalRequest._csrfRetry) {
-      // CSRF関連エラーの可能性があるため、CSRFトークンをリフレッシュして再試行
+    // 403エラーの場合、かつリトライ回数が上限に達していない場合にCSRFトークンを再取得してリクエストを再試行
+    if (error.response?.status === 403 && !originalRequest._retry &&
+        !(originalRequest.retryCount > 0)) { // 最大1回のリトライのみ許可
+      console.log('403エラー検出、CSRFトークンを再取得します');
+      console.log('元のリクエスト:', {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        headers: originalRequest.headers
+      });
+
+      originalRequest._retry = true;
+      originalRequest.retryCount = (originalRequest.retryCount || 0) + 1;
+
       try {
-        console.log('403エラー検出、CSRFトークンを再取得します');
-        console.log('元のリクエスト:', {
-          url: originalRequest.url,
-          method: originalRequest.method,
-          headers: originalRequest.headers
-        });
-
-        // CSRFトークンをクリアして新しいトークンを取得
-        csrfService.clearToken();
+        // CSRFトークンを再取得
         const newCsrfToken = await csrfService.refreshCsrfToken();
-
-        // 元のリクエストにCSRFトークンを設定（複数のヘッダー名で送信）
-        originalRequest.headers['X-XSRF-TOKEN'] = newCsrfToken;
-        originalRequest.headers['X-CSRF-TOKEN'] = newCsrfToken;
-        // 無限ループを防ぐためのフラグを設定
-        originalRequest._csrfRetry = true;
-
         console.log('CSRFトークン再取得成功、リクエストを再実行します');
-        console.log('新しいCSRFトークン:', newCsrfToken.substring(0, 10) + '...');
+        console.log('新しいCSRFトークン:', newCsrfToken ? newCsrfToken.substring(0, 10) + '...' : 'null');
 
-        // 元のリクエストを再実行
+        // 新しいCSRFトークンをリクエストヘッダーに設定
+        originalRequest.headers['X-XSRF-TOKEN'] = newCsrfToken;
+
+        // リクエストを再実行
         return api(originalRequest);
-      } catch (csrfError) {
-        console.error('CSRFトークンの再取得に失敗:', csrfError);
-
-        // CSRFエラーの場合は、より詳細なエラーメッセージを提供
-        const csrfErrorResponse = {
-          ...error,
-          response: {
-            ...error.response,
-            data: {
-              ...error.response?.data,
-              message: 'セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。',
-              csrfError: true
-            }
-          }
-        };
-
-        return Promise.reject(csrfErrorResponse);
+      } catch (refreshError) {
+        console.error('CSRFトークン再取得失敗:', refreshError);
+        // リフレッシュに失敗した場合はエラーを返す
+        return Promise.reject(refreshError);
       }
     }
 

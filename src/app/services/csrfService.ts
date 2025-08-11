@@ -31,6 +31,11 @@ class CsrfService {
   async getCsrfToken(): Promise<string> {
     // 既存のトークンが有効かチェック
     if (this.isTokenValid()) {
+      // 有効なトークンがある場合はそれを返すが、Cookieからも確認する
+      const cookieToken = this.getCsrfTokenFromCookie();
+      if (cookieToken) {
+        return cookieToken;
+      }
       return this.token!;
     }
 
@@ -62,15 +67,18 @@ class CsrfService {
         // 有効期限を現在時刻 + expiresIn秒で設定
         this.expiresAt = Date.now() + (response.data.expiresIn * 1000);
 
-        // CSRFトークンをCookieからも確認（Double Submit Cookie パターン）
+        // Double Submit Cookie パターン: Cookieのトークンを優先使用
         if (typeof window !== 'undefined') {
           const cookieToken = this.getCsrfTokenFromCookie();
           console.log('Cookieからのトークン:', cookieToken ? cookieToken.substring(0, 10) + '...' : 'なし');
           console.log('レスポンスからのトークン:', this.token ? this.token.substring(0, 10) + '...' : 'なし');
 
-          // Cookieのトークンが存在し、レスポンスのトークンと異なる場合は警告
-          if (cookieToken && cookieToken !== this.token) {
-            console.warn('CSRFトークンがCookieと一致しません。レスポンスのトークンを優先します。');
+          // Cookieのトークンが存在する場合は必ずそれを使用
+          if (cookieToken) {
+            this.token = cookieToken;
+            console.log('CookieのCSRFトークンを使用します');
+          } else {
+            console.warn('CookieにCSRFトークンがありません。レスポンストークンを使用します。');
           }
         }
 
@@ -122,6 +130,11 @@ class CsrfService {
    * 現在のトークンを取得（有効性チェックなし）
    */
   getCurrentToken(): string | null {
+    // 常にCookieから最新のトークンを取得
+    const cookieToken = this.getCsrfTokenFromCookie();
+    if (cookieToken) {
+      return cookieToken;
+    }
     return this.token;
   }
 
@@ -149,17 +162,16 @@ class CsrfService {
     }
 
     const cookies = document.cookie.split(';');
-    const possibleNames = ['CSRF-TOKEN', 'XSRF-TOKEN', '_csrf'];
 
     for (let cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
-      if (possibleNames.includes(name)) {
+      if (name === 'XSRF-TOKEN') {
         console.log(`Cookie発見: ${name} = ${value ? value.substring(0, 10) + '...' : 'empty'}`);
-        return decodeURIComponent(value);
+        return decodeURIComponent(value || '');
       }
     }
 
-    console.log('CSRFトークンのCookieが見つかりません');
+    console.log('XSRF-TOKEN Cookieが見つかりません');
     return null;
   }
 
@@ -168,8 +180,18 @@ class CsrfService {
    */
   async initializeCsrfToken(): Promise<void> {
     try {
+      // まずCookieから既存のトークンを確認
+      const cookieToken = this.getCsrfTokenFromCookie();
+      if (cookieToken) {
+        this.token = cookieToken;
+        this.expiresAt = Date.now() + (30 * 60 * 1000); // 30分
+        console.log('CSRF初期化完了（Cookieから）:', cookieToken.substring(0, 10) + '...');
+        return;
+      }
+
+      // Cookieにない場合は新しいトークンを取得
       await this.getCsrfToken();
-      console.log('CSRF初期化完了');
+      console.log('CSRF初期化完了（新規取得）');
     } catch (error) {
       console.error('CSRF初期化失敗:', error);
       // 初期化失敗は致命的ではないため、エラーをスローしない
