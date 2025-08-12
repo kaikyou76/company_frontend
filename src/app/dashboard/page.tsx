@@ -13,15 +13,34 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/app/store';
+import { logoutUserAsync } from '@/app/store';
+import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      // 调用登出异步操作
+      await dispatch(logoutUserAsync());
+      // 登出成功后跳转到登录页面
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('登出失败:', error);
+      // 即使失败也跳转到登录页面
+      router.push('/auth/login');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -79,7 +98,7 @@ export default function Dashboard() {
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 relative group">
                 <img
                   src="https://placehold.co/32x32"
                   alt="プロフィール"
@@ -89,6 +108,16 @@ export default function Dashboard() {
                   田中太郎
                 </span>
                 <Settings className="w-4 h-4 text-gray-400" />
+                
+                {/* 登出菜单 */}
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    ログアウト
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -154,12 +183,12 @@ export default function Dashboard() {
                     <div className="text-sm text-gray-600 mb-1">
                       今月の残業時間
                     </div>
-                    <div className="text-2xl font-bold text-orange-600">
-                      28.5h
+                    <div className="text-2xl font-bold text-purple-600">
+                      12.5h
                     </div>
-                    <div className="text-xs text-red-600">+6.5h</div>
+                    <div className="text-xs text-red-600">+1.2h</div>
                   </div>
-                  <Calendar className="w-8 h-8 text-orange-500" />
+                  <Clock className="w-8 h-8 text-purple-500" />
                 </div>
               </div>
 
@@ -167,14 +196,14 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm text-gray-600 mb-1">
-                      今月の出勤日数
+                      今月の休暇使用
                     </div>
                     <div className="text-2xl font-bold text-green-600">
-                      18日
+                      2日
                     </div>
-                    <div className="text-xs text-gray-500">20日中</div>
+                    <div className="text-xs text-gray-600">/ 5日</div>
                   </div>
-                  <Users className="w-8 h-8 text-green-500" />
+                  <Calendar className="w-8 h-8 text-green-500" />
                 </div>
               </div>
 
@@ -182,138 +211,247 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm text-gray-600 mb-1">
-                      今月の休暇日数
+                      今月の出勤率
                     </div>
-                    <div className="text-2xl font-bold text-purple-600">
-                      2日
+                    <div className="text-2xl font-bold text-yellow-600">
+                      98.2%
                     </div>
-                    <div className="text-xs text-gray-500">20日中</div>
+                    <div className="text-xs text-green-600">+0.3%</div>
                   </div>
-                  <FileText className="w-8 h-8 text-purple-500" />
+                  <Users className="w-8 h-8 text-yellow-500" />
                 </div>
               </div>
             </div>
 
-            {/* 最近の活動 */}
+            {/* 勤務状況チャート */}
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  最近の活動
+                  週間勤務状況
                 </h3>
-                <button className="text-blue-600 hover:text-blue-800 text-sm">
-                  すべて見る
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button className="p-1 rounded hover:bg-gray-100">
+                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                  </button>
+                  <span className="text-sm font-medium text-gray-700">
+                    12月9日 - 12月15日
+                  </span>
+                  <button className="p-1 rounded hover:bg-gray-100">
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center space-x-4 p-4 bg-green-50 rounded-lg">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">出勤打刻</div>
-                    <div className="text-sm text-gray-600">今日 09:00</div>
-                  </div>
-                  <span className="text-sm font-medium text-green-600">
-                    完了
-                  </span>
-                </div>
+                {[
+                  { day: "月", date: "12/9", hours: 8.5, status: "completed" },
+                  { day: "火", date: "12/10", hours: 8.0, status: "completed" },
+                  { day: "水", date: "12/11", hours: 9.0, status: "overtime" },
+                  { day: "木", date: "12/12", hours: 8.5, status: "completed" },
+                  { day: "金", date: "12/13", hours: 0, status: "pending" },
+                  { day: "土", date: "12/14", hours: 0, status: "weekend" },
+                  { day: "日", date: "12/15", hours: 0, status: "weekend" },
+                ].map((item, index) => (
+                  <div key={index} className="flex items-center">
+                    <div className="w-16">
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.day}
+                      </div>
+                      <div className="text-xs text-gray-500">{item.date}</div>
+                    </div>
 
-                <div className="flex items-center space-x-4 p-4 bg-orange-50 rounded-lg">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">休暇申請</div>
-                    <div className="text-sm text-gray-600">12/25 - 12/26</div>
-                  </div>
-                  <span className="text-sm font-medium text-orange-600">
-                    承認待ち
-                  </span>
-                </div>
+                    <div className="flex-1 mx-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              item.status === "completed"
+                                ? "bg-green-500"
+                                : item.status === "overtime"
+                                ? "bg-purple-500"
+                                : item.status === "pending"
+                                ? "bg-yellow-500"
+                                : "bg-gray-200"
+                            }`}
+                            style={{
+                              width:
+                                item.status === "weekend"
+                                  ? "0%"
+                                  : `${(item.hours / 9) * 100}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="flex items-center space-x-4 p-4 bg-purple-50 rounded-lg">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">残業申請</div>
-                    <div className="text-sm text-gray-600">
-                      昨日 18:00-20:00
+                    <div className="w-12 text-right">
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.status === "weekend" ? "-" : item.hours}
+                      </div>
+                      <div className="text-xs text-gray-500">時間</div>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-green-600">
-                    承認済み
-                  </span>
-                </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 今月のスケジュール */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                今月のスケジュール
+              </h3>
+
+              <div className="space-y-3">
+                {[
+                  {
+                    date: "12/20",
+                    title: "プロジェクト会議",
+                    time: "14:00 - 15:30",
+                    type: "meeting",
+                  },
+                  {
+                    date: "12/22",
+                    title: "社内研修",
+                    time: "10:00 - 12:00",
+                    type: "training",
+                  },
+                  {
+                    date: "12/25",
+                    title: "圣诞节休暇",
+                    time: "終日",
+                    type: "holiday",
+                  },
+                ].map((item, index) => (
+                  <div key={index} className="flex items-center p-3 hover:bg-gray-50 rounded-lg">
+                    <div className="flex-shrink-0 w-12 text-center">
+                      <div className="text-xs font-medium text-gray-500">
+                        {item.date}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 ml-3">
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {item.title}
+                      </div>
+                      <div className="text-xs text-gray-500">{item.time}</div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          item.type === "meeting"
+                            ? "bg-blue-100 text-blue-800"
+                            : item.type === "training"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {item.type === "meeting"
+                          ? "会議"
+                          : item.type === "training"
+                          ? "研修"
+                          : "休暇"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* 右側：カレンダーと通知 */}
+          {/* 右側：サイドバー */}
           <div className="space-y-6">
-            {/* 今月のカレンダー */}
+            {/* カレンダー */}
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  今月のカレンダー
+                  2023年12月
                 </h3>
-                <div className="flex items-center space-x-2">
-                  <button className="p-1 hover:bg-gray-100 rounded">
-                    <ChevronLeft className="w-4 h-4" />
+                <div className="flex space-x-2">
+                  <button className="p-1 rounded hover:bg-gray-100">
+                    <ChevronLeft className="w-4 h-4 text-gray-600" />
                   </button>
-                  <button className="p-1 hover:bg-gray-100 rounded">
-                    <ChevronRight className="w-4 h-4" />
+                  <button className="p-1 rounded hover:bg-gray-100">
+                    <ChevronRight className="w-4 h-4 text-gray-600" />
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 text-center text-sm mb-2">
+              <div className="grid grid-cols-7 gap-1 mb-2">
                 {["日", "月", "火", "水", "木", "金", "土"].map((day) => (
-                  <div key={day} className="p-2 font-semibold text-gray-600">
+                  <div
+                    key={day}
+                    className="text-center text-xs font-medium text-gray-500 py-1"
+                  >
                     {day}
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-1 text-center text-sm">
-                {Array.from({ length: 31 }, (_, i) => {
-                  const day = i + 1;
-                  const isToday = day === 15;
-                  const isWeekend = (i + 1) % 7 === 0 || (i + 1) % 7 === 1;
-                  const hasEvent = [5, 12, 19, 26].includes(day);
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: 35 }).map((_, index) => {
+                  const day = index - 3; // 12月は1日が金曜日なので調整
+                  const isCurrentMonth = day >= 1 && day <= 31;
+                  const isToday = day === 13; // 今日を13日とする
 
                   return (
                     <div
-                      key={i}
-                      className={`p-2 rounded cursor-pointer transition-colors ${
-                        isToday
-                          ? "bg-blue-500 text-white font-bold"
-                          : hasEvent
-                          ? "bg-red-100 text-red-600"
-                          : isWeekend
-                          ? "text-gray-400"
-                          : "hover:bg-blue-50"
+                      key={index}
+                      className={`text-center text-sm p-1 rounded ${
+                        !isCurrentMonth
+                          ? "text-gray-300"
+                          : isToday
+                          ? "bg-blue-500 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
-                      {day}
+                      {isCurrentMonth ? day : ""}
                     </div>
                   );
                 })}
               </div>
+            </div>
 
-              <div className="mt-4 space-y-2 text-xs">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span>今日</span>
+            {/* 出勤状況 */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                本日の出勤状況
+              </h3>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        出勤
+                      </div>
+                      <div className="text-xs text-gray-500">09:05</div>
+                    </div>
+                  </div>
+                  <MapPin className="w-4 h-4 text-green-500" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-red-100 rounded-full"></div>
-                  <span>休暇</span>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-gray-400 rounded-full mr-3"></div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        退勤
+                      </div>
+                      <div className="text-xs text-gray-500">-</div>
+                    </div>
+                  </div>
+                  <MapPin className="w-4 h-4 text-gray-400" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-yellow-100 rounded-full"></div>
-                  <span>祝日</span>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">勤務時間</span>
+                    <span className="font-medium">08:55</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-gray-500">残業時間</span>
+                    <span className="font-medium text-purple-600">00:00</span>
+                  </div>
                 </div>
               </div>
             </div>

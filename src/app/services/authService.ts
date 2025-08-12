@@ -156,3 +156,22 @@ export const checkUsername = async (username: string): Promise<UsernameCheckResp
     return { available: false };
   }
 };
+
+// 用户登出API函数
+// 返回Promise<boolean>表示登出是否成功
+export const logoutUser = async (): Promise<boolean> => {
+  try {
+    // 使用axios实例向/auth/logout端点发送POST请求
+    const response = await api.post("/auth/logout", {}, {
+      // 确保发送凭证
+      withCredentials: true
+    });
+    // 返回响应数据中的success字段
+    return response.data.success;
+  } catch (error: any) {
+    // 处理错误响应
+    console.error("登出错误:", error);
+    // 即使后端调用失败，前端仍应清除本地状态
+    return false;
+  }
+};

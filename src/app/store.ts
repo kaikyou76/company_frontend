@@ -1,7 +1,7 @@
 // 从@reduxjs/toolkit导入必要的函数
 import { configureStore, createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // 从本地服务文件导入认证相关的API调用函数
-import { registerUser, checkUsername, loginUser } from './services/authService';
+import { registerUser, checkUsername, loginUser, logoutUser } from './services/authService';
 // 从本地类型定义文件导入认证相关的类型
 import { RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, User, AuthState } from './types/auth';
 
@@ -58,6 +58,28 @@ export const loginUserAsync = createAsyncThunk<
     } else {
       // 如果API调用失败，返回被拒绝的值（错误信息）
       return rejectWithValue(response.message || '登录失败');
+    }
+  }
+);
+
+// 创建异步操作 - 用户登出
+// createAsyncThunk用于创建处理异步逻辑的thunk
+export const logoutUserAsync = createAsyncThunk<
+  boolean, // 返回类型（登出是否成功）
+  void,    // 参数类型（无参数）
+  { rejectValue: string } // 配置对象
+>(
+  'auth/logout', // action类型前缀
+  async (_, { rejectWithValue }) => { // 异步函数实现
+    try {
+      // 调用登出API
+      const success = await logoutUser();
+      // 返回登出结果
+      return success;
+    } catch (error) {
+      // 处理API调用错误
+      console.error('登出时发生错误:', error);
+      return rejectWithValue('登出时发生错误');
     }
   }
 );
@@ -161,6 +183,39 @@ const authSlice = createSlice({
     builder.addCase(loginUserAsync.rejected, (state, action) => { // 处理登录rejected状态（请求失败）
       state.loading = false; // 结束加载状态
       state.error = action.payload || '登录失败'; // 设置错误信息为reject时返回的值或默认信息
+    });
+    
+    // 处理用户登出的各个状态
+    builder.addCase(logoutUserAsync.pending, (state) => { // 处理登出pending状态（请求发送中）
+      state.loading = true; // 设置为加载状态
+      state.error = null; // 清除之前的错误信息
+    });
+
+    builder.addCase(logoutUserAsync.fulfilled, (state, action) => { // 处理登出fulfilled状态（请求成功）
+      state.loading = false; // 结束加载状态
+      
+      // 无论后端是否成功，前端都应清除状态
+      // 清除用户信息
+      state.user = null;
+      // 清除令牌
+      state.token = null;
+      // 清除刷新令牌
+      state.refreshToken = null;
+      // 设置为未认证状态
+      state.isAuthenticated = false;
+    });
+
+    builder.addCase(logoutUserAsync.rejected, (state, action) => { // 处理登出rejected状态（请求失败）
+      state.loading = false; // 结束加载状态
+      
+      // 即使登出请求失败，也应清除本地状态
+      state.user = null;
+      state.token = null;
+      state.refreshToken = null;
+      state.isAuthenticated = false;
+      
+      // 错误信息可选地显示给用户
+      state.error = action.payload || '登出失败';
     });
     
     // 处理用户注册的各个状态
