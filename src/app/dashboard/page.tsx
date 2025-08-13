@@ -32,12 +32,18 @@ export default function Dashboard() {
   const handleLogout = async () => {
     try {
       // 调用登出异步操作
-      await dispatch(logoutUserAsync());
+      const result = await dispatch(logoutUserAsync());
+      
       // 登出成功后跳转到登录页面
-      router.push('/auth/login');
+      if (logoutUserAsync.fulfilled.match(result) && result.payload.success) {
+        router.push('/auth/login');
+      } else {
+        // 即使失败也跳转到登录页面
+        router.push('/auth/login');
+      }
     } catch (error) {
       console.error('登出失败:', error);
-      // 即使失败也跳转到登录页面
+      // 即使失败也跳转到登录ページ
       router.push('/auth/login');
     }
   };
@@ -109,7 +115,7 @@ export default function Dashboard() {
                 </span>
                 <Settings className="w-4 h-4 text-gray-400" />
                 
-                {/* 登出菜单 */}
+                {/* 登出メニュー */}
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
                   <button
                     onClick={handleLogout}

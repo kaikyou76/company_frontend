@@ -1,5 +1,12 @@
 // 从axios库导入axios
-import axios from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+// 从Redux导入store
+import { store } from '@/app/store';
+// 从authService导入令牌检查函数
+import { isTokenExpiringSoon } from './authService';
+// 从store导入チェック和刷新トークンの異步操作
+import { checkAndRefreshTokenAsync } from '@/app/store';
+
 // CSRFサービスをインポート
 import csrfService from './csrfService';
 
@@ -22,11 +29,11 @@ function getCsrfTokenFromCookie(): string | null {
 // 创建axios实例，配置基础URL和超时时间
 // 通过axios.create()创建的实例继承了axios的所有方法，包括get、post、put、delete等
 const api = axios.create({
-  // 从环境变量获取API基础URL，如果没有则使用默认值
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8091/api',
+  // 从环境变量获取API基础URL，如果没有则使用默认値
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api',
   // 设置请求超时时间为10秒
   timeout: 10000,
-  // 添加withCredentials以支持跨域请求时发送cookies
+  // 添加withCredentials以支持跨域请求時发送cookies
   withCredentials: true,
 });
 
@@ -40,8 +47,30 @@ api.interceptors.request.use(
     // 在发送请求之前做些什么
     // 从localStorage中获取token（仅在浏览器环境中）
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    // 如果存在token，则添加到请求头中
-    if (token) {
+    
+    // 検查令牌是否即将過期（5分間内）
+    if (token && isTokenExpiringSoon(token, 300)) {
+      // 从Redux store获取当前状态
+      const state = store.getState();
+      
+      // 如果有刷新トークン，则嘗試刷新アクセストークン
+      if (state.auth.refreshToken) {
+        try {
+          // 調用チェックと刷新トークンの異步操作
+          const result = await store.dispatch(checkAndRefreshTokenAsync());
+          
+          // 如果刷新成功，更新config中のAuthorization頭
+          if (checkAndRefreshTokenAsync.fulfilled.match(result) && result.payload) {
+            if (result.payload.token) {
+              config.headers.Authorization = `Bearer ${result.payload.token}`;
+            }
+          }
+        } catch (error) {
+          console.error('トークン更新中にエラーが発生しました:', error);
+        }
+      }
+    } else if (token) {
+      // 如果トークン未過期、正常使用現有トークン
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -81,7 +110,7 @@ api.interceptors.request.use(
   },
   (error) => {
     // 对请求错误做些什么
-    // 返回被拒绝的Promise
+    // 返回被拒絕のPromise
     return Promise.reject(error);
   }
 );
@@ -92,25 +121,25 @@ api.interceptors.response.use(
   // 这个函数会在每个HTTP响应返回后被调用
   // response参数是由axios自动提供的，包含了服务器返回的响应信息
   // 包括：data、status、statusText、headers、config等
-  (response) => {
-    // 对响应数据做点什么
+  (response: AxiosResponse) => {
+    // 对响应データ做点什么
     // 直接返回响应
     return response;
   },
   async (error) => {
     // 对响应错误做点什么
-    // error参数包含了错误信息，如响应状态码、错误消息等
+    // error参数包含了错误信息，如响应状态码、錯誤メッセージ等
     const originalRequest = error.config;
 
     // 如果是401未授权错误
     if (error.response?.status === 401) {
-      // token过期或无效，清除本地存储并跳转到登录页
+      // token過期または無効、ローカルストレージをクリアしログインページにリダイレクト
       if (typeof window !== 'undefined') {
-        // 在浏览器环境中，移除本地存储的token
+        // ブラウザ環境の場合、ローカルストレージからtokenを削除
         localStorage.removeItem('token');
         // CSRFトークンもクリア
         csrfService.clearToken();
-        // 如果有路由可以使用，可以在这里添加跳转逻辑
+        // ルーティングが利用できる場合は、ここにリダイレクトロジックを追加
         // router.push('/login');
       }
     }
@@ -146,7 +175,7 @@ api.interceptors.response.use(
       }
     }
 
-    // 返回被拒绝的Promise
+    // 返回被拒否のPromise
     return Promise.reject(error);
   }
 );

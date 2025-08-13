@@ -9,7 +9,7 @@ export interface RegisterRequest {
   clientLatitude: string;  // 客户端纬度
   clientLongitude: string; // 客户端经度
   departmentId: number;    // 部门ID
-  positionId: number;      // 职位ID
+  positionId: number;      // 職位ID
   managerId: number;       // 管理者ID
 }
 
@@ -26,7 +26,7 @@ export interface RegisterResponse {
     clientLatitude: string | null;   // 客户端纬度
     clientLongitude: string | null;  // 客户端经度
     departmentId: number;             // 部门ID
-    positionId: number;               // 职位ID
+    positionId: number;               // 職位ID
     managerId: number;                // 管理者ID
     createdAt: string;                // 创建时间
   };
@@ -53,12 +53,12 @@ export interface LoginResponse {
     name: string;            // 用户名
     departmentId: number;    // 部门ID
     departmentName: string;  // 部门名称
-    positionId: number;      // 职位ID
-    positionName: string;    // 职位名称
+    positionId: number;      // 職位ID
+    positionName: string;    // 職位名称
     role: string;            // 用户角色
     locationType: string;    // 位置类型
   };
-  message?: string;      // 响应消息
+  message?: string;      // 响应メッセージ
   csrfError?: boolean;   // CSRF関連エラーフラグ
 }
 
@@ -69,9 +69,9 @@ export interface User {
   username: string;        // 用户名
   fullName: string;        // 用户全名
   departmentId: number;    // 部门ID
-  departmentName: string;  // 部门名称
-  positionId: number;      // 职位ID
-  positionName: string;    // 职位名称
+  departmentName: string;  // 部門名称
+  positionId: number;      // 職位ID
+  positionName: string;    // 職位名称
   role: string;            // 用户角色
   locationType: string;    // 位置类型
 }
@@ -99,4 +99,10 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
   registerSuccess: boolean;
+}
+
+// 登出响应类型インターフェース
+export interface LogoutResponse {
+  success: boolean;
+  message: string;
 }

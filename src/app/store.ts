@@ -1,165 +1,236 @@
-// 从@reduxjs/toolkit导入必要的函数
+// 从@reduxjs/toolkit导入必要な函数
 import { configureStore, createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // 从本地服务文件导入认证相关的API调用函数
-import { registerUser, checkUsername, loginUser, logoutUser } from './services/authService';
-// 从本地类型定义文件导入认证相关的类型
-import { RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, User, AuthState } from './types/auth';
+import { registerUser, checkUsername, logoutUser, refreshAccessToken, isTokenExpiringSoon, loginUser } from './services/authService';
+// 从本地类型定义ファイル导入认证相关的类型
+import { RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, User, AuthState, LogoutResponse } from './types/auth';
 
 // AuthStateは既にtypes/auth.tsで定義されているため、ここでは削除
 
 // 定义初始状态
 const initialState: AuthState = {
-  user: null, // 初始时没有用户信息
-  token: null, // 初始时没有令牌
-  refreshToken: null, // 初始时没有刷新令牌
-  isAuthenticated: false, // 初始时未认证
-  loading: false, // 初始时不在加载状态
-  error: null, // 初始时没有错误
-  registerSuccess: false, // 初始时注册未成功
+  user: null, // 初期時没有用户信息
+  token: null, // 初期時没有令牌
+  refreshToken: null, // 初期時没有刷新トークン
+  isAuthenticated: false, // 初期時未认证
+  loading: false, // 初期時不在加载状态
+  error: null, // 初期時没有错误
+  registerSuccess: false, // 初期時注册未成功
 };
 
-// 创建异步操作 - 用户注册
-// createAsyncThunk用于创建处理异步逻辑的thunk
-export const registerUserAsync = createAsyncThunk<
-  RegisterResponse, // 返回类型
-  RegisterRequest,  // 参数类型
-  { rejectValue: string } // 配置对象，定义reject时的返回值类型
+// 创建异步操作 - 检查并刷新访问令牌
+export const checkAndRefreshTokenAsync = createAsyncThunk<
+  { token: string | null; refreshToken: string | null } | null, // 返回类型
+  void, // 参数类型
+  { rejectValue: string; state: RootState } // 配置对象
 >(
-  'auth/register', // action类型前缀
-  async (userData, { rejectWithValue }) => { // 异步函数实现
-    // 调用注册API
-    const response = await registerUser(userData);
-    // 如果API调用成功
-    if (response.success) {
-      // 返回成功的响应数据
-      return response;
-    } else {
-      // 如果API调用失败，返回被拒绝的值（错误信息）
-      return rejectWithValue(response.message || '注册失败');
-    }
-  }
-);
-
-// 创建异步操作 - 用户登录
-// createAsyncThunk用于创建处理异步逻辑的thunk
-export const loginUserAsync = createAsyncThunk<
-  LoginResponse, // 返回类型
-  LoginRequest,  // 参数类型
-  { rejectValue: string } // 配置对象，定义reject时的返回值类型
->(
-  'auth/login', // action类型前缀
-  async (loginData, { rejectWithValue }) => { // 异步函数实现
-    // 调用登录API
-    const response = await loginUser(loginData);
-    // 如果API调用成功
-    if (response.success) {
-      // 返回成功的响应数据
-      return response;
-    } else {
-      // 如果API调用失败，返回被拒绝的值（错误信息）
-      return rejectWithValue(response.message || '登录失败');
-    }
-  }
-);
-
-// 创建异步操作 - 用户登出
-// createAsyncThunk用于创建处理异步逻辑的thunk
-export const logoutUserAsync = createAsyncThunk<
-  boolean, // 返回类型（登出是否成功）
-  void,    // 参数类型（无参数）
-  { rejectValue: string } // 配置对象
->(
-  'auth/logout', // action类型前缀
-  async (_, { rejectWithValue }) => { // 异步函数实现
+  'auth/checkAndRefreshToken',
+  async (_, { getState, rejectWithValue }) => {
     try {
-      // 调用登出API
-      const success = await logoutUser();
-      // 返回登出结果
-      return success;
+      const state = getState() as RootState;
+      
+      // 检查是否有刷新令牌
+      if (!state.auth.refreshToken) {
+        return null;
+      }
+      
+      // 检查访问令牌是否即将过期
+      if (isTokenExpiringSoon(state.auth.token)) {
+        // 刷新トークン
+        const response = await refreshAccessToken(state.auth.refreshToken);
+        if (response.success && response.token) {
+          return {
+            token: response.token,
+            refreshToken: response.refreshToken || state.auth.refreshToken
+          };
+        } else {
+          // 刷新失败
+          return rejectWithValue(response.message || 'トークンの更新に失敗しました');
+        }
+      }
+      
+      // トークン未过期、不需要刷新
+      return null;
     } catch (error) {
-      // 处理API调用错误
-      console.error('登出时发生错误:', error);
-      return rejectWithValue('登出时发生错误');
+      console.error('トークンチェックエラー:', error);
+      return rejectWithValue('トークンのチェック中にエラーが発生しました');
     }
   }
 );
 
-// 创建异步操作 - 检查用户名是否可用
-// 这个异步操作的处理逻辑与registerUserAsync不同，原因如下：
-// 1. checkUsername API返回的是 { success: boolean, available: boolean, message: string } 结构
-// 2. 但我们只关心 available 字段的值（true/false）
-// 3. 所以我们将 available 字段提取出来作为返回值
-// 4. 而registerUserAsync需要返回完整的响应对象，因为组件可能需要访问其中的多个字段
-export const checkUsernameAsync = createAsyncThunk<
-  boolean, // 返回类型（用户名是否可用）
-  string,  // 参数类型（用户名）
-  { rejectValue: string } // 配置对象
+// 创建异步操作 - 刷新アクセストークン
+export const refreshAccessTokenAsync = createAsyncThunk<
+  LoginResponse, // 返回类型
+  string,        // パラメータタイプ（刷新トークン）
+  { rejectValue: string } // 配置オブジェクト
 >(
-  'auth/checkUsername', // action类型前缀
-  // 这个username参数是在调用checkUsernameAsync时传入的
-  // 例如：dispatch(checkUsernameAsync("test@example.com"))
-  // 其中"test@example.com"就是这里的username参数
-  async (username, { rejectWithValue }) => { // 异步函数实现
-    // 如果用户名为空
+  'auth/refreshToken',
+  async (refreshToken, { rejectWithValue }) => {
+    try {
+      const response = await refreshAccessToken(refreshToken);
+      if (response.success) {
+        return response;
+      } else {
+        return rejectWithValue(response.message || 'トークンの更新に失敗しました');
+      }
+    } catch (error) {
+      console.error('トークン更新エラー:', error);
+      return rejectWithValue('トークンの更新中にエラーが発生しました');
+    }
+  }
+);
+
+// 创建异步操作 - ユーザー登録
+// createAsyncThunk用于创建処理異步ロジックのthunk
+export const registerUserAsync = createAsyncThunk<
+  RegisterResponse, // 返回タイプ
+  RegisterRequest,  // パラメータタイプ
+  { rejectValue: string } // 配置オブジェクト、reject時の戻り値の型を定義
+>(
+  'auth/register', // actionタイプ前缀
+  async (userData, { rejectWithValue }) => { // 非同期関数の実装
+    // 登録APIを呼び出す
+    const response = await registerUser(userData);
+    // API呼び出しが成功した場合
+    if (response.success) {
+      // 成功したレスポンスデータを返す
+      return response;
+    } else {
+      // API呼び出しが失敗した場合、拒否された値（エラーメッセージ）を返す
+      return rejectWithValue(response.message || '登録失敗');
+    }
+  }
+);
+
+// 创建异步操作 - ユーザーログイン
+// createAsyncThunk用于创建処理異步ロジックのthunk
+export const loginUserAsync = createAsyncThunk<
+  LoginResponse, // 返回タイプ
+  LoginRequest,  // パラメータタイプ
+  { rejectValue: string } // 配置オブジェクト、reject時の戻り値の型を定義
+>(
+  'auth/login', // actionタイプ前缀
+  async (loginData, { rejectWithValue }) => { // 非同期関数の実装
+    // ログインAPIを呼び出す
+    const response = await loginUser(loginData);
+    // API呼び出しが成功した場合
+    if (response.success) {
+      // 成功したレスポンスデータを返す
+      return response;
+    } else {
+      // API呼び出しが失敗した場合、拒否された値（エラーメッセージ）を返す
+      return rejectWithValue(response.message || 'ログイン失敗');
+    }
+  }
+);
+
+// 创建异步操作 - ユーザー登出
+// createAsyncThunk用于创建処理異步ロジックのthunk
+export const logoutUserAsync = createAsyncThunk<
+  LogoutResponse, // 返回タイプ（登出レスポンス）
+  void,    // パラメータタイプ（無パラメータ）
+  { rejectValue: string } // 配置オブジェクト
+>(
+  'auth/logout', // actionタイプ前缀
+  async (_, { rejectWithValue }) => { // 异步関数実装
+    try {
+      // 調用登出API
+      const response = await logoutUser();
+      // 返回登出結果
+      return response;
+    } catch (error) {
+      // 处理API呼び出しエラー
+      console.error('登出時发生エラー:', error);
+      return rejectWithValue('登出時发生エラー');
+    }
+  }
+);
+
+// 创建异步操作 - ユーザ名が利用可能かどうかをチェック
+// この非同期操作の処理ロジックはregisterUserAsyncとは異なります。理由は以下の通りです：
+// 1. checkUsername APIは { success: boolean, available: boolean, message: string } 構造を返します
+// 2. しかし、available フィールドの値（true/false）のみに関心があります
+// 3. したがって、available フィールドを抽出して戻り値として返します
+// 4. registerUserAsyncは、コンポーネントが複数のフィールドにアクセスできるように、完全なレスポンスオブジェクトを返す必要があります
+export const checkUsernameAsync = createAsyncThunk<
+  boolean, // 戻り値の型（ユーザーネームが利用可能かどうか）
+  string,  // パラメータの型（ユーザーネーム）
+  { rejectValue: string } // 設定オブジェクト
+>(
+  'auth/checkUsername', // アクションタイプのプレフィックス
+  // このusernameパラメータはcheckUsernameAsyncを呼び出すときに渡されます
+  // 例：dispatch(checkUsernameAsync("test@example.com"))
+  // ここで"test@example.com"がこのusernameパラメータです
+  async (username, { rejectWithValue }) => { // 非同期関数の実装
+    // ユーザーネームが空の場合
     if (!username) {
-      // 返回被拒绝的值（错误信息）
-      return rejectWithValue('用户名不能为空');
+      // 拒否された値（エラーメッセージ）を返す
+      return rejectWithValue('ユーザーネームが空です');
     }
     
     try {
-      // 调用检查用户名API
-      // checkUsername函数返回的是 { available: boolean } 对象
+      // ユーザーネームチェックAPIを呼び出す
+      // checkUsername関数は { available: boolean } オブジェクトを返します
       const result = await checkUsername(username);
-      // 我们只需要返回available字段的值
+      // availableフィールドの値のみを返します
       return result.available;
     } catch (error) {
-      // 处理API调用错误
-      console.error('检查用户名时发生错误:', error);
-      return rejectWithValue('检查用户名时发生错误');
+      // API呼び出しエラーを処理
+      console.error('ユーザーネームチェック時にエラーが発生しました:', error);
+      return rejectWithValue('ユーザーネームチェック時にエラーが発生しました');
     }
   }
 );
 
-// 创建auth slice（Redux Toolkit中的概念，用于管理状态切片）
+// 作成auth slice（Redux Toolkitの概念で、状態スライスを管理します）
 const authSlice = createSlice({
   name: 'auth', // slice名称
-  initialState, // 初始状态
-  reducers: { // 同步reducers
-    // 清除错误信息的reducer
+  initialState, // 初期状態
+  reducers: { // 同期reducers
+    // 清除错误情報のreducer
     clearError: (state) => {
-      // 将错误信息设置为null
+      // 将错误情報設定为null
       state.error = null;
     },
-    // 清除注册成功状态的reducer
+    // 清除注册成功状态のreducer
     clearRegisterSuccess: (state) => {
-      // 将注册成功状态设置为false
+      // 将注册成功状态設定为false
       state.registerSuccess = false;
     },
-    // 登出的reducer
+    // 登出のreducer
     logout: (state) => {
       // 清除用户信息
       state.user = null;
       // 清除令牌
       state.token = null;
-      // 清除刷新令牌
+      // 清除刷新トークン
       state.refreshToken = null;
-      // 设置为未认证状态
+      // 设置为未認証状态
       state.isAuthenticated = false;
     },
+    // 更新認証トークンのreducer
+    updateTokens: (state, action) => {
+      if (action.payload.token) {
+        state.token = action.payload.token;
+      }
+      if (action.payload.refreshToken) {
+        state.refreshToken = action.payload.refreshToken;
+      }
+    },
   },
-  extraReducers: (builder) => { // 异步操作的reducers
-    // 处理用户登录的各个状态
+  extraReducers: (builder) => { // 异步操作のreducers
+    // 处理用户登录の各个状态
     builder.addCase(loginUserAsync.pending, (state) => { // 处理登录pending状态（请求发送中）
       state.loading = true; // 设置为加载状态
-      state.error = null; // 清除之前的错误信息
+      state.error = null; // 清除之前的错误情報
     });
     
     builder.addCase(loginUserAsync.fulfilled, (state, action) => { // 处理登录fulfilled状态（请求成功）
       state.loading = false; // 结束加载状态
       
-      // 如果登录成功
+      // If login is successful
       if (action.payload.success && action.payload.token && action.payload.user) {
-        // 保存用户信息
+        // 保存ユーザー情報
         state.user = {
           id: action.payload.user.id,
           username: action.payload.user.name,
@@ -171,122 +242,174 @@ const authSlice = createSlice({
           role: action.payload.user.role,
           locationType: action.payload.user.locationType,
         };
-        // 保存令牌
+        // 保存アクセストークン
         state.token = action.payload.token;
-        // 保存刷新令牌（如果存在）
+        // 保存リフレッシュトークン（もし存在する場合）
         state.refreshToken = action.payload.refreshToken || null;
-        // 设置为已认证状态
+        // 認証済み状態に設定
         state.isAuthenticated = true;
       }
     });
     
     builder.addCase(loginUserAsync.rejected, (state, action) => { // 处理登录rejected状态（请求失败）
       state.loading = false; // 结束加载状态
-      state.error = action.payload || '登录失败'; // 设置错误信息为reject时返回的值或默认信息
+      state.error = action.payload || 'ログイン失敗'; // 设置错误情報为reject時返回の値或默认情報
     });
     
-    // 处理用户登出的各个状态
-    builder.addCase(logoutUserAsync.pending, (state) => { // 处理登出pending状态（请求发送中）
-      state.loading = true; // 设置为加载状态
-      state.error = null; // 清除之前的错误信息
+    // 处理刷新トークンの各个状态
+    builder.addCase(refreshAccessTokenAsync.pending, (state) => {
+      state.loading = true;
+      state.error = null;
     });
 
-    builder.addCase(logoutUserAsync.fulfilled, (state, action) => { // 处理登出fulfilled状态（请求成功）
-      state.loading = false; // 结束加载状态
+    builder.addCase(refreshAccessTokenAsync.fulfilled, (state, action) => {
+      state.loading = false;
       
-      // 无论后端是否成功，前端都应清除状态
-      // 清除用户信息
+      if (action.payload.success && action.payload.token) {
+        // 更新アクセストークン
+        state.token = action.payload.token;
+        // If a new refresh token is returned, update it
+        if (action.payload.refreshToken) {
+          state.refreshToken = action.payload.refreshToken;
+        }
+        // Ensure the user remains authenticated
+        state.isAuthenticated = true;
+      }
+    });
+
+    builder.addCase(refreshAccessTokenAsync.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || 'トークンの更新に失敗しました';
+      // 刷新トークン失败時、清除認証状態
       state.user = null;
-      // 清除令牌
       state.token = null;
-      // 清除刷新令牌
       state.refreshToken = null;
-      // 设置为未认证状态
+      state.isAuthenticated = false;
+    });
+    
+    // 处理チェック并刷新トークンの各个状态
+    builder.addCase(checkAndRefreshTokenAsync.fulfilled, (state, action) => {
+      if (action.payload) {
+        // 更新トークン
+        if (action.payload.token) {
+          state.token = action.payload.token;
+        }
+        if (action.payload.refreshToken) {
+          state.refreshToken = action.payload.refreshToken;
+        }
+      }
+    });
+
+    builder.addCase(checkAndRefreshTokenAsync.rejected, (state, action) => {
+      // 検查和刷新トークン失败時、清除認証状態
+      state.user = null;
+      state.token = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
     });
 
-    builder.addCase(logoutUserAsync.rejected, (state, action) => { // 处理登出rejected状态（请求失败）
-      state.loading = false; // 结束加载状态
+    // 处理ユーザー登出の各个状態
+    builder.addCase(logoutUserAsync.pending, (state) => { // ログアウトpending状態（リクエスト送信中）を処理
+      state.loading = true; // ローディング状態に設定
+      state.error = null; // 以前のエラーメッセージをクリア
+    });
+
+    builder.addCase(logoutUserAsync.fulfilled, (state, action) => { // ログアウトfulfilled状態（リクエスト成功）を処理
+      state.loading = false; // ローディング状態を終了
       
-      // 即使登出请求失败，也应清除本地状态
+      // バックエンドが成功したかどうかに関わらず、フロントエンドは状態をクリアする必要があります
+      // ユーザー情報をクリア
+      state.user = null;
+      // トークンをクリア
+      state.token = null;
+      // リフレッシュトークンをクリア
+      state.refreshToken = null;
+      // 未認証状態に設定
+      state.isAuthenticated = false;
+    });
+
+    builder.addCase(logoutUserAsync.rejected, (state, action) => { // ログアウトrejected状態（リクエスト失敗）を処理
+      state.loading = false; // ローディング状態を終了
+      
+      // ログアウトリクエストが失敗した場合でも、ローカル状態をクリアする必要があります
       state.user = null;
       state.token = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
       
-      // 错误信息可选地显示给用户
-      state.error = action.payload || '登出失败';
+      // エラーメッセージはオプションでユーザーに表示できます
+      state.error = action.payload || 'ログアウト失敗';
     });
     
-    // 处理用户注册的各个状态
-    builder.addCase(registerUserAsync.pending, (state) => { // 处理注册pending状态（请求发送中）
-      state.loading = true; // 设置为加载状态
-      state.error = null; // 清除之前的错误信息
-      state.registerSuccess = false; // 重置注册成功状态
+    // ユーザーレジスタの各状態を処理
+    builder.addCase(registerUserAsync.pending, (state) => { // レジスタpending状態（リクエスト送信中）を処理
+      state.loading = true; // ローディング状態に設定
+      state.error = null; // 以前のエラーメッセージをクリア
+      state.registerSuccess = false; // レジスタ成功状態をリセット
     });
     
-    builder.addCase(registerUserAsync.fulfilled, (state, action) => { // 处理注册fulfilled状态（请求成功）
-      state.loading = false; // 结束加载状态
+    builder.addCase(registerUserAsync.fulfilled, (state, action) => { // レジスタfulfilled状態（リクエスト成功）を処理
+      state.loading = false; // ローディング状態を終了
       
-      // 如果注册成功
+      // レジスタが成功した場合
       if (action.payload.success) {
-        // 设置注册成功状态
+        // レジスタ成功状態を設定
         state.registerSuccess = true;
       }
     });
     
-    builder.addCase(registerUserAsync.rejected, (state, action) => { // 处理注册rejected状态（请求失败）
-      state.loading = false; // 结束加载状态
-      state.error = action.payload || '注册失败'; // 设置错误信息为reject时返回的值或默认信息
+    builder.addCase(registerUserAsync.rejected, (state, action) => { // レジスタrejected状態（リクエスト失敗）を処理
+      state.loading = false; // ローディング状態を終了
+      state.error = action.payload || 'レジスタ失敗'; // リジェクト時に返された値またはデフォルトメッセージをエラーメッセージに設定
     });
     
-    // 处理检查用户名的各个状态
-    builder.addCase(checkUsernameAsync.pending, (state) => { // 处理检查用户名pending状态（请求发送中）
-      state.loading = true; // 设置为加载状态
-      state.error = null; // 清除之前的错误信息
+    // ユーザーネームチェックの各状態を処理
+    builder.addCase(checkUsernameAsync.pending, (state) => { // ユーザーネームチェックpending状態（リクエスト送信中）を処理
+      state.loading = true; // ローディング状態に設定
+      state.error = null; // 以前のエラーメッセージをクリア
     });
     
-    builder.addCase(checkUsernameAsync.fulfilled, (state) => { // 处理检查用户名fulfilled状态（请求成功）
-      state.loading = false; // 结束加载状态
-      state.error = null; // 确保清除任何之前的错误信息
+    builder.addCase(checkUsernameAsync.fulfilled, (state) => { // ユーザーネームチェックfulfilled状態（リクエスト成功）を処理
+      state.loading = false; // ローディング状態を終了
+      state.error = null; // 以前のエラーメッセージを確実にクリア
     });
     
-    builder.addCase(checkUsernameAsync.rejected, (state, action) => { // 处理检查用户名rejected状态（请求失败）
-      state.loading = false; // 结束加载状态
-      // 使用更友好的错误信息
-      const errorMessage = action.payload === '检查用户名时发生错误' 
-        ? '无法完成用户名检查，请稍后再试' 
-        : action.payload || '用户名检查失败';
+    builder.addCase(checkUsernameAsync.rejected, (state, action) => { // ユーザーネームチェックrejected状態（リクエスト失敗）を処理
+      state.loading = false; // ローディング状態を終了
+      // よりフレンドリーなエラーメッセージを使用
+      const errorMessage = action.payload === 'ユーザーネームチェック時にエラーが発生しました' 
+        ? 'ユーザーネームチェックを完了できませんでした。後ほどお試しください' 
+        : action.payload || 'ユーザーネームチェック失敗';
       state.error = errorMessage;
     });
   },
 });
 
-// 导出actions，以便在组件中使用
+// actionsをエクスポートし、コンポーネントで使用できるようにする
 export const { clearError, clearRegisterSuccess, logout } = authSlice.actions;
 
-// 导出选择器函数，用于从Redux store中选择特定的状态
+// 選択器関数をエクスポートし、Redux storeから特定の状態を選択するために使用する
 export const selectLoading = (state: RootState) => state.auth.loading;
 export const selectError = (state: RootState) => state.auth.error;
 export const selectRegisterSuccess = (state: RootState) => state.auth.registerSuccess;
 
-// 更新RootState类型，基于store的getState方法推断
+// storeのgetStateメソッドから推論されるstoreのgetStateの戻り値の型を更新
 export type RootState = ReturnType<typeof store.getState> & {
   auth: AuthState;
 };
-// 创建store，使用configureStore配置Redux store
-// 注意：这个store是在这里定义的，不是从其他地方引入的
-// configureStore是Redux Toolkit提供的函数，用于创建Redux store
+// Redux storeを作成し、configureStoreを使用してRedux storeを構成
+// 注意：このstoreはここで定義され、他の場所からインポートされません
+// configureStoreはRedux Toolkitが提供する関数で、Redux storeを作成するために使用されます
 export const store = configureStore({
   reducer: {
-    // 将auth slice的reducer添加到store中
+    // storeにauth sliceのreducerを追加する
     auth: authSlice.reducer,
   },
 });
 
-// 定义AppDispatch类型，基于store的dispatch方法
+// storeのdispatchメソッドから推論されるAppDispatchの型を定義
 export type AppDispatch = typeof store.dispatch;
 
 
-// 默认导出auth slice的reducer
+// auth sliceのreducerをデフォルトでエクスポート
 export default authSlice.reducer;

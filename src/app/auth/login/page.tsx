@@ -1,8 +1,8 @@
 // 指定这是一个客户端组件，将在客户端执行
 'use client';
 
-// 从react导入useState钩子，用于管理组件状态
-import { useState } from 'react';
+// 从react导入useState和useEffect钩子，用于管理组件状态
+import { useState, useEffect } from 'react';
 // 从react-hook-form导入useForm钩子，用于管理表单状态
 import { useForm } from 'react-hook-form';
 // 从next/navigation导入useRouter钩子，用于页面导航
@@ -14,7 +14,7 @@ import { AppDispatch, RootState } from '@/app/store';
 // 从本地store文件导入loginUserAsync异步操作和选择器函数
 import { loginUserAsync, selectLoading, selectError, clearError } from '@/app/store';
 // 从本地类型定义文件导入LoginRequest类型
-import { LoginRequest } from '@/app/types/auth';
+import { LoginRequest, LoginResponse } from '@/app/types/auth';
 
 // 定义LoginPage组件
 const LoginPage = () => {
@@ -46,11 +46,25 @@ const LoginPage = () => {
     
     // 如果登录成功，跳转到仪表板页面
     if (loginUserAsync.fulfilled.match(result)) {
-      if (result.payload.success) {
+      const payload = result.payload as LoginResponse;
+      if (payload.success) {
+        // 存储refreshToken到localStorage
+        if (payload.refreshToken) {
+          localStorage.setItem('refreshToken', payload.refreshToken);
+        }
         router.push('/dashboard');
       }
     }
   };
+
+  // 检查localStorage中的refreshToken并尝试刷新会话
+  useEffect(() => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      // 可以在这里调用一个异步操作来使用refreshToken刷新accessToken
+      // 示例：dispatch(refreshSessionAsync(refreshToken));
+    }
+  }, [dispatch]);
   
   // 渲染组件UI
   return (
