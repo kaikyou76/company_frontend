@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [, setSelectedDate] = useState(new Date());
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 

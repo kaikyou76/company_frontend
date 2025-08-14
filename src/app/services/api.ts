@@ -1,5 +1,5 @@
 // 从axios库导入axios
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 // 从Redux导入store
 import { store } from '@/app/store';
 // 从authService导入令牌检查函数

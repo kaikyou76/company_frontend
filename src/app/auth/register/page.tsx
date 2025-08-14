@@ -19,14 +19,34 @@ import {
   selectError,
   selectRegisterSuccess,
   clearError,
-  clearRegisterSuccess,
 } from "@/app/store";
-// 从本地类型定义文件导入RegisterRequest类型
-import { RegisterRequest } from "@/app/types/auth";
+// 从本地auth类型文件导入RegisterData类型
+import { RegisterData } from "@/app/types/auth";
+// 导入CSRF服务
+import { getCsrfToken } from "@/app/services/csrfService";
 
-// 扩展RegisterRequest类型以包含locationType字段
-interface ExtendedRegisterRequest extends RegisterRequest {
-  locationType: string;
+// 定义表单数据类型
+interface FormData extends RegisterData {
+  confirmPassword: string;
+}
+
+// 定义检查用户名响应类型
+interface CheckUsernameResponse {
+  available: boolean;
+  message: string;
+  csrfError?: boolean;
+}
+
+// 定义Redux异步操作结果类型
+interface AsyncActionResult<T> {
+  payload: T;
+  type: string;
+}
+
+// 定义Redux拒绝操作结果类型
+interface AsyncActionError {
+  message?: string;
+  csrfError?: boolean;
 }
 
 // 定义RegisterPage组件
@@ -55,7 +75,7 @@ const RegisterPage = () => {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<ExtendedRegisterRequest>();
+  } = useForm<FormData>();
   // 使用useDispatch钩子获取dispatch函数，用于触发Redux actions
   const dispatch = useDispatch<AppDispatch>();
   // 使用useRouter钩子获取router对象，用于页面导航
@@ -87,7 +107,7 @@ const RegisterPage = () => {
           const result = await dispatch(checkUsernameAsync(username));
           // 如果检查成功，更新用户名是否可用状态
           if (checkUsernameAsync.fulfilled.match(result)) {
-            const payload = result.payload as any;
+            const payload = result.payload as CheckUsernameResponse;
             if (payload.csrfError) {
               setCsrfError(
                 "セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。"
@@ -98,7 +118,7 @@ const RegisterPage = () => {
             }
           } else if (checkUsernameAsync.rejected.match(result)) {
             // 检查失败时的处理
-            const errorPayload = result.payload as any;
+            const errorPayload = result.payload as AsyncActionError | undefined;
             if (errorPayload?.csrfError) {
               setCsrfError(
                 "セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。"
@@ -106,12 +126,13 @@ const RegisterPage = () => {
             }
             setIsUsernameAvailable(false);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("检查用户名时出错:", error);
+          const err = error as Error;
           if (
-            error.message &&
-            (error.message.includes("CSRF") ||
-              error.message.includes("セキュリティトークン"))
+            err.message &&
+            (err.message.includes("CSRF") ||
+              err.message.includes("セキュリティトークン"))
           ) {
             setCsrfError(
               "セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。"
@@ -134,11 +155,7 @@ const RegisterPage = () => {
         clearTimeout(usernameCheckDebounce);
       }
     };
-  }, [username, dispatch]); // 依赖数组：当username变化时重新执行此effect
-  // dispatch被包含在依赖数组中是因为React/ESLint规则要求所有在effect中使用的外部函数都被包含在依赖数组中
-  // 虽然useDispatch返回的dispatch函数是稳定引用的（不会变化），但为了满足规则仍需包含在依赖数组中
-  // 之前usernameCheckDebounce也被包含在依赖数组中，但这导致了无限循环，因为每次effect执行都会设置新的timeout，
-  // 而timeout引用的变化又会触发effect重新执行，所以现在我们将其从依赖数组中移除，并在effect内部正确清理
+  }, [username, dispatch, usernameCheckDebounce]); // 依赖数组：当username变化时重新执行此effect
 
   // 使用useEffect钩子处理注册成功状态
   useEffect(() => {
@@ -156,7 +173,7 @@ const RegisterPage = () => {
   }, [registerSuccess, dispatch, router]);
 
   // 定义表单提交处理函数
-  const onSubmit = async (data: RegisterRequest) => {
+  const onSubmit = async (data: RegisterData) => {
     // 清除之前的错误信息
     dispatch(clearError());
     setCsrfError(null);
