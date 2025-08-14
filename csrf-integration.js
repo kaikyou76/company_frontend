@@ -1,7 +1,7 @@
 // CSRF保護対応のAPI呼び出しユーティリティ
 
 class ApiClient {
-  constructor(baseUrl = 'http://localhost:8091/api') {
+  constructor(baseUrl = 'http://localhost:8080/api') {
     this.baseUrl = baseUrl;
     this.csrfToken = null;
   }

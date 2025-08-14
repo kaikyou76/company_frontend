@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 
 // APIクライアントクラス（上記のApiClientを使用）
 class ApiClient {
-  constructor(baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8091/api') {
+  constructor(baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api') {
     this.baseUrl = baseUrl;
     this.csrfToken = null;
   }

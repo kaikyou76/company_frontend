@@ -21,7 +21,7 @@ class CsrfService {
   private readonly baseURL: string;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8091/api';
+    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
   }
 
   /**
@@ -87,24 +87,26 @@ class CsrfService {
       } else {
         throw new Error(response.data.message || 'CSRFトークンの取得に失敗しました');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('CSRFトークン取得エラー:', error);
 
       // エラーメッセージを日本語化
       let errorMessage = 'CSRFトークンの取得に失敗しました';
 
-      if (error.response) {
+      // errorがAxiosErrorかどうかを確認
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as any).response;
         // サーバーからのエラーレスポンス
-        if (error.response.status === 401) {
+        if (response.status === 401) {
           errorMessage = '認証が必要です。ログインしてください。';
-        } else if (error.response.status === 403) {
+        } else if (response.status === 403) {
           errorMessage = 'アクセスが拒否されました。';
-        } else if (error.response.status >= 500) {
+        } else if (response.status >= 500) {
           errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再試行してください。';
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
+        } else if (response.data?.message) {
+          errorMessage = response.data.message;
         }
-      } else if (error.request) {
+      } else if (error && typeof error === 'object' && 'request' in error) {
         // ネットワークエラー
         errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
       }
@@ -163,7 +165,7 @@ class CsrfService {
 
     const cookies = document.cookie.split(';');
 
-    for (let cookie of cookies) {
+    for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === 'XSRF-TOKEN') {
         console.log(`Cookie発見: ${name} = ${value ? value.substring(0, 10) + '...' : 'empty'}`);

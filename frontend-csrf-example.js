@@ -3,7 +3,7 @@
 // 1. CSRFトークンを取得
 const getCsrfToken = async () => {
   try {
-    const response = await fetch('http://localhost:8091/api/csrf/token', {
+    const response = await fetch('http://localhost:8080/api/csrf/token', {
       method: 'GET',
       credentials: 'include', // Cookieを含める
     });
@@ -28,7 +28,7 @@ const registerUser = async (userData) => {
       throw new Error('CSRF token取得に失敗しました');
     }
 
-    const response = await fetch('http://localhost:8091/api/auth/register', {
+    const response = await fetch('http://localhost:8080/api/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

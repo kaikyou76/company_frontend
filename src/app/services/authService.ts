@@ -18,13 +18,14 @@ export const refreshAccessToken = async (refreshToken: string): Promise<LoginRes
     });
     // 成功したレスポンスデータを返す
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラー処理
     console.error("トークンリフレッシュエラー:", error);
-    if (error.response && error.response.data) {
+    // errorがAxiosErrorかどうかを確認
+    if (error && typeof error === 'object' && 'response' in error && error.response && (error.response as any).data) {
       // サーバーからのエラーレスポンスがある場合
-      return error.response.data;
-    } else if (error.request) {
+      return (error.response as any).data;
+    } else if (error && typeof error === 'object' && 'request' in error) {
       // ネットワークエラーまたはサーバー未応答
       return {
         success: false,
@@ -90,17 +91,19 @@ export const registerUser = async (
     );
     // レスポンスデータを返します
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラー処理
     console.error("登録エラー:", error);
-    if (error.response && error.response.data) {
+    // errorがAxiosErrorかどうかを確認
+    if (error && typeof error === 'object' && 'response' in error && error.response && (error.response as any).data) {
       // 特別に403エラーを処理します
-      if (error.response.status === 403) {
+      const response = (error.response as any);
+      if (response.status === 403) {
         // CSRF関連エラーかどうかを判定
-        const errorMessage = error.response.data.message || '';
+        const errorMessage = response.data.message || '';
         const isCsrfError = errorMessage.includes('CSRF') ||
           errorMessage.includes('token') ||
-          error.response.data.csrfError === true;
+          response.data.csrfError === true;
 
         if (isCsrfError) {
           return {
@@ -117,8 +120,8 @@ export const registerUser = async (
       }
 
       // バックエンドバリデーションエラーを処理します
-      if (error.response.data.errors) {
-        const errors = error.response.data.errors;
+      if (response.data.errors) {
+        const errors = response.data.errors;
         const errorMessages = Object.keys(errors).map(
           (key) => `${key}: ${errors[key].join(", ")}`
         );
@@ -129,8 +132,8 @@ export const registerUser = async (
       }
 
       // エラーレスポンスデータがある場合、それを返します
-      return error.response.data;
-    } else if (error.request) {
+      return response.data;
+    } else if (error && typeof error === 'object' && 'request' in error) {
       // ネットワークエラーまたはサーバー未応答
       return {
         success: false,
@@ -161,28 +164,33 @@ export const checkUsername = async (username: string): Promise<UsernameCheckResp
 
     // レスポンスデータのavailableフィールドを返します
     return { available: response.data.available };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラー処理
     console.error('ユーザー名チェック時にエラーが発生しました:', error);
 
-    // CSRF関連エラーのチェック
-    if (error.response?.status === 403) {
-      const errorMessage = error.response.data.message || '';
-      const isCsrfError = errorMessage.includes('CSRF') ||
-        errorMessage.includes('token') ||
-        error.response.data.csrfError === true;
+    // errorがAxiosErrorかどうかを確認
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as any).response;
+      
+      // CSRF関連エラーのチェック
+      if (response?.status === 403) {
+        const errorMessage = response.data.message || '';
+        const isCsrfError = errorMessage.includes('CSRF') ||
+          errorMessage.includes('token') ||
+          response.data.csrfError === true;
 
-      if (isCsrfError) {
-        return {
-          available: false,
-          csrfError: true
-        };
+        if (isCsrfError) {
+          return {
+            available: false,
+            csrfError: true
+          };
+        }
       }
-    }
 
-    // エラーレスポンスにavailableフィールドがある場合、その値を返します
-    if (error.response?.data?.available !== undefined) {
-      return { available: error.response.data.available };
+      // エラーレスポンスにavailableフィールドがある場合、その値を返します
+      if (response?.data?.available !== undefined) {
+        return { available: response.data.available };
+      }
     }
 
     // ネットワークエラーまたはその他の異常な場合、デフォルトでユーザー名が利用不可とします
@@ -198,17 +206,20 @@ export const logoutUser = async (): Promise<LogoutResponse> => {
     const response = await api.post<LogoutResponse>("/auth/logout");
     // レスポンスデータを返します
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラー処理
     console.error("ログアウトエラー:", error);
-    if (error.response && error.response.data) {
+    // errorがAxiosErrorかどうかを確認
+    if (error && typeof error === 'object' && 'response' in error && error.response && (error.response as any).data) {
+      const response = (error.response as any);
+      
       // 特別に403エラー（CSRFエラー）を処理します
-      if (error.response.status === 403) {
+      if (response.status === 403) {
         // CSRF関連エラーかどうかを判定
-        const errorMessage = error.response.data.message || '';
+        const errorMessage = response.data.message || '';
         const isCsrfError = errorMessage.includes('CSRF') ||
           errorMessage.includes('token') ||
-          error.response.data.csrfError === true;
+          response.data.csrfError === true;
 
         if (isCsrfError) {
           return {
@@ -224,8 +235,8 @@ export const logoutUser = async (): Promise<LogoutResponse> => {
       }
       
       // エラーレスポンスデータがある場合、それを返します
-      return error.response.data;
-    } else if (error.request) {
+      return response.data;
+    } else if (error && typeof error === 'object' && 'request' in error) {
       // ネットワークエラーまたはサーバー未応答
       return {
         success: false,
@@ -252,13 +263,14 @@ export const loginUser = async (
     const response = await api.post<LoginResponse>("/auth/login", loginData);
     // レスポンスデータを返します
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラー処理
     console.error("ログインエラー:", error);
-    if (error.response && error.response.data) {
+    // errorがAxiosErrorかどうかを確認
+    if (error && typeof error === 'object' && 'response' in error && error.response && (error.response as any).data) {
       // エラーレスポンスデータがある場合、それを返します
-      return error.response.data;
-    } else if (error.request) {
+      return (error.response as any).data;
+    } else if (error && typeof error === 'object' && 'request' in error) {
       // ネットワークエラーまたはサーバー未応答
       return {
         success: false,

@@ -300,7 +300,7 @@ const authSlice = createSlice({
       }
     });
 
-    builder.addCase(checkAndRefreshTokenAsync.rejected, (state, action) => {
+    builder.addCase(checkAndRefreshTokenAsync.rejected, (state) => {
       // 検查和刷新トークン失败時、清除認証状態
       state.user = null;
       state.token = null;

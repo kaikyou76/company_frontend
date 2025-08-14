@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   Clock,
   MapPin,
@@ -105,10 +106,12 @@ export default function Dashboard() {
                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               <div className="flex items-center space-x-2 relative group">
-                <img
-                  src="https://placehold.co/32x32"
+                <Image
+                  src="https://placehold.co/32x32.png"
                   alt="プロフィール"
-                  className="w-8 h-8 rounded-full"
+                  width={32}
+                  height={32}
+                  className="rounded-full"
                 />
                 <span className="text-sm font-medium text-gray-700">
                   田中太郎
