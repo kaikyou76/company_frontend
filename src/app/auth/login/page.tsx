@@ -1,110 +1,145 @@
 // 指定这是一个客户端组件，将在客户端执行
 'use client';
 
-// 从react导入useState钩子，用于管理组件状态
-import { useState } from "react";
+// 从react导入useState, useEffect钩子，用于管理组件状态
+import { useState, useEffect } from "react";
 // 从react-hook-form导入useForm钩子，用于管理表单状态
 import { useForm } from "react-hook-form";
 // 从next/navigation导入useRouter钩子，用于页面导航
 import { useRouter } from "next/navigation";
-// 从react-redux导入useDispatch钩子，用于与Redux交互
-import { useDispatch } from "react-redux";
-// 从本地store文件导入AppDispatch类型
+// 从react-redux导入useDispatch和useSelector钩子，用于与Redux交互
+import { useDispatch, useSelector } from "react-redux";
+// 从本地storeファイル导入AppDispatch类型
 import { AppDispatch } from "@/app/store";
-// 从本地store文件导入loginUserAsync异步操作和选择器函数
+// 从本地storeファイル导入loginUserAsync異步操作と选择器函数
 import {
   loginUserAsync,
   selectLoading,
   selectError,
+  selectIsAuthenticated,
   clearError,
 } from "@/app/store";
-// 从本地auth类型文件导入LoginData类型
-import { LoginData } from "@/app/types/auth";
-// 从本地服务文件导入CSRF令牌获取函数
-import { getCsrfToken } from "@/app/services/csrfService";
+// 从本地auth类型ファイル导入LoginRequest类型
+import { LoginRequest } from "@/app/types/auth";
+// 从本地サービスファイル导入CSRFトークン取得関数
+import csrfService from "@/app/services/csrfService";
 
-// 定义LoginPage组件
+// LoginPageコンポーネントを定義
 const LoginPage = () => {
-  // 使用useState钩子管理密码可见性状态
+  // useStateフックを使用してパスワードの可視性状態を管理
   const [showPassword, setShowPassword] = useState(false);
-  
-  // 使用react-hook-form的useForm钩子初始化表单
-  // register用于注册表单字段
-  // handleSubmit用于处理表单提交
-  // formState包含表单状态信息，如错误
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginData>();
-  // 使用useDispatch钩子获取dispatch函数，用于触发Redux actions
+  // CSRFエラー状態を管理するためのuseStateフック
+  const [csrfError, setCsrfError] = useState<string | null>(null);
+
+  // react-hook-formのuseFormフックを使用してフォームを初期化
+  // registerはフォームフィールドを登録するための関数
+  // handleSubmitはフォームのサブミットを処理するための関数
+  // formStateはフォームの状態情報を含むオブジェクト
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>();
+  // useDispatchフックを使用してdispatch関数を取得
   const dispatch = useDispatch<AppDispatch>();
-  // 使用useRouter钩子获取router对象，用于页面导航
+  // useRouterフックを使用してrouterオブジェクトを取得
   const router = useRouter();
-  
-  // 使用useSelector钩子从Redux store中选择加载状态
+
+  // useSelectorフックを使用してReduxストアからローディング状態を選択
   const loading = useSelector(selectLoading);
-  // 使用useSelector钩子从Redux store中选择错误信息
+  // useSelectorフックを使用してReduxストアからエラーメッセージを選択
   const error = useSelector(selectError);
-  
-  // 定义表单提交处理函数
-  const onSubmit = async (data: LoginData) => {
-    // 清除之前的错误信息
+  // useSelectorフックを使用してReduxストアから認証状態を選択
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+
+  // 認証状態が変更されたらダッシュボードにリダイレクト
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
+  // フォームのサブミット処理関数を定義
+  const onSubmit = async (data: LoginRequest) => {
+    // 以前のエラーメッセージをクリア
     dispatch(clearError());
-    
-    // 调用登录异步操作
-    const result = await dispatch(loginUserAsync(data));
-    
-    // 如果登录成功，跳转到仪表板页面
-    if (loginUserAsync.fulfilled.match(result)) {
-      const payload = result.payload as LoginResponse;
-      if (payload.success) {
-        // 存储refreshToken到localStorage
-        if (payload.refreshToken) {
-          localStorage.setItem('refreshToken', payload.refreshToken);
+    setCsrfError(null);
+
+    try {
+      // ログイン非同期操作を呼び出す
+      const result = await dispatch(loginUserAsync(data));
+      
+      // ログイン成功時の処理
+      if (loginUserAsync.fulfilled.match(result) && result.payload.success) {
+        // 成功メッセージを表示するなど
+        console.log('ログイン成功');
+      }
+      
+      // ログイン失敗時のCSRFエラーのチェック
+      if (loginUserAsync.rejected.match(result)) {
+        const payload = result.payload as { 
+          message?: string; 
+          csrfError?: boolean;
+        } | undefined;
+        
+        if (payload?.csrfError || (payload?.message && payload.message.includes("セキュリティトークン"))) {
+          setCsrfError(
+            "セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。"
+          );
         }
-        router.push('/dashboard');
+      }
+    } catch (error: unknown) {
+      console.error("ログイン処理中にエラーが発生しました:", error);
+      const err = error as Error;
+      if (
+        err.message &&
+        (err.message.includes("CSRF") ||
+          err.message.includes("セキュリティトークン"))
+      ) {
+        setCsrfError(
+          "セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。"
+        );
       }
     }
   };
 
-  // 检查localStorage中的refreshToken并尝试刷新会话
+  // localStorageのrefreshTokenをチェックし、セッションをリフレッシュする
   useEffect(() => {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
-      // 可以在这里调用一个异步操作来使用refreshToken刷新accessToken
-      // 示例：dispatch(refreshSessionAsync(refreshToken));
+      // ここでrefreshTokenを使用してaccessTokenをリフレッシュする非同期操作を呼び出すことができる
+      // 例：dispatch(refreshSessionAsync(refreshToken));
     }
   }, [dispatch]);
-  
-  // 渲染组件UI
+
+  // コンポーネントのUIをレンダリング
   return (
-    // 最外层容器，使用Tailwind CSS类设置样式
+    // 最外側のコンテナ、Tailwind CSSクラスを使用してスタイルを設定
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
-      {/* 内容容器 */}
+      {/* コンテンツコンテナ */}
       <div className="max-w-md w-full space-y-8">
-        {/* 标题区域 */}
+        {/* タイトルエリア */}
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            登录到您的账户
+            アカウントにログイン
           </h2>
         </div>
         
-        {/* 登录表单 */}
+        {/* ログインフォーム */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          {/* 显示错误消息 */}
+          {/* エラーメッセージを表示 */}
           {error && (
             <div className="rounded-md bg-red-50 p-4 mb-4">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  {/* 错误图标 */}
+                  {/* エラーアイコン */}
                   <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div className="ml-3 flex-1">
                   <h3 className="text-sm font-medium text-red-800">
-                    登录失败
+                    ログインに失敗しました
                   </h3>
                   <div className="mt-2 text-sm text-red-700">
                     <ul className="list-disc pl-5 space-y-1">
-                      {error.split('\n').map((err, index) => (
+                      {error.split('\n').map((err: string, index: number) => (
                         <li key={index}>{err}</li>
                       ))}
                     </ul>
@@ -127,17 +162,54 @@ const LoginPage = () => {
               </div>
             </div>
           )}
+          {/* CSRFエラーを表示 */}
+          {csrfError && (
+            <div className="rounded-md bg-red-50 p-4 mb-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  {/* エラーアイコン */}
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-medium text-red-800">
+                    ログインに失敗しました
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>{csrfError}</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="ml-auto pl-3">
+                  <div className="-mx-1.5 -my-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCsrfError(null)}
+                      className="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600"
+                    >
+                      <span className="sr-only">Dismiss</span>
+                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
-          {/* 表单字段容器 */}
+          {/* フォームフィールドコンテナ */}
           <div className="rounded-md shadow-sm space-y-4">
-            {/* 员工编号/用户名字段 */}
+            {/* 従業員番号/ユーザー名フィールド */}
             <div>
               <label htmlFor="employeeCode" className="block text-sm font-medium text-gray-700">
-                员工编号
+                従業員番号
               </label>
               <input
                 id="employeeCode"
-                {...register('employeeCode', { required: '员工编号是必填项' })}
+                {...register('employeeCode', { required: '従業員番号は必須です' })}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="name@company.com"
               />
@@ -146,33 +218,33 @@ const LoginPage = () => {
               )}
             </div>
             
-            {/* 密码字段 */}
+            {/* パスワードフィールド */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                密码
+                パスワード
               </label>
               <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  {...register('password', { required: '密码是必填项' })}
+                  {...register('password', { required: 'パスワードは必須です' })}
                   className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="密码"
+                  placeholder="パスワード"
                 />
-                {/* 密码可见性切换按钮 */}
+                {/* パスワードの可視性切り替えボタン */}
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    // 眼睛打开图标
+                    // 目開けアイコン
                     <svg className="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                       <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                     </svg>
                   ) : (
-                    // 眼睛关闭图标
+                    // 目閉めアイコン
                     <svg className="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
                       <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
@@ -186,16 +258,16 @@ const LoginPage = () => {
             </div>
           </div>
           
-          {/* 忘记密码链接 */}
+          {/* パスワードを忘れたリンク */}
           <div className="flex items-center justify-between">
             <div className="text-sm">
               <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                忘记密码?
+                パスワードを忘れた？
               </a>
             </div>
           </div>
           
-          {/* 登录按钮 */}
+          {/* ログインボタン */}
           <div>
             <button
               type="submit"
@@ -203,29 +275,29 @@ const LoginPage = () => {
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               {loading ? (
-                // 加载状态显示
+                // ローディング状態表示
                 <>
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  登录中...
+                  ログイン中...
                 </>
               ) : (
-                // 正常状态显示
-                '登录'
+                // 通常状態表示
+                'ログイン'
               )}
             </button>
           </div>
         </form>
         
-        {/* 注册链接 */}
+        {/* 登録リンク */}
         <div className="text-center">
           <button
             onClick={() => router.push('/auth/register')}
             className="font-medium text-indigo-600 hover:text-indigo-500"
           >
-            没有账户？立即注册
+            アカウントがありませんか？今すぐ登録
           </button>
         </div>
       </div>
@@ -233,5 +305,5 @@ const LoginPage = () => {
   );
 };
 
-// 导出LoginPage组件作为默认导出
-export default LoginPage;
+// LoginPageコンポーネントをデフォルトエクスポート
+export default LoginPage

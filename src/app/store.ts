@@ -392,11 +392,10 @@ export const { clearError, clearRegisterSuccess, logout } = authSlice.actions;
 export const selectLoading = (state: RootState) => state.auth.loading;
 export const selectError = (state: RootState) => state.auth.error;
 export const selectRegisterSuccess = (state: RootState) => state.auth.registerSuccess;
+export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
 
 // storeのgetStateメソッドから推論されるstoreのgetStateの戻り値の型を更新
-export type RootState = ReturnType<typeof store.getState> & {
-  auth: AuthState;
-};
+export type RootState = ReturnType<typeof store.getState>;
 // Redux storeを作成し、configureStoreを使用してRedux storeを構成
 // 注意：このstoreはここで定義され、他の場所からインポートされません
 // configureStoreはRedux Toolkitが提供する関数で、Redux storeを作成するために使用されます
