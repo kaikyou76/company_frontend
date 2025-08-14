@@ -1,20 +1,27 @@
 // 指定这是一个客户端组件，将在客户端执行
 'use client';
 
-// 从react导入useState和useEffect钩子，用于管理组件状态
-import { useState, useEffect } from 'react';
+// 从react导入useState钩子，用于管理组件状态
+import { useState } from "react";
 // 从react-hook-form导入useForm钩子，用于管理表单状态
-import { useForm } from 'react-hook-form';
+import { useForm } from "react-hook-form";
 // 从next/navigation导入useRouter钩子，用于页面导航
-import { useRouter } from 'next/navigation';
-// 从react-redux导入useDispatch和useSelector钩子，用于与Redux交互
-import { useDispatch, useSelector } from 'react-redux';
-// 从本地store文件导入AppDispatch和RootState类型
-import { AppDispatch, RootState } from '@/app/store';
+import { useRouter } from "next/navigation";
+// 从react-redux导入useDispatch钩子，用于与Redux交互
+import { useDispatch } from "react-redux";
+// 从本地store文件导入AppDispatch类型
+import { AppDispatch } from "@/app/store";
 // 从本地store文件导入loginUserAsync异步操作和选择器函数
-import { loginUserAsync, selectLoading, selectError, clearError } from '@/app/store';
-// 从本地类型定义文件导入LoginRequest类型
-import { LoginRequest, LoginResponse } from '@/app/types/auth';
+import {
+  loginUserAsync,
+  selectLoading,
+  selectError,
+  clearError,
+} from "@/app/store";
+// 从本地auth类型文件导入LoginData类型
+import { LoginData } from "@/app/types/auth";
+// 从本地服务文件导入CSRF令牌获取函数
+import { getCsrfToken } from "@/app/services/csrfService";
 
 // 定义LoginPage组件
 const LoginPage = () => {
@@ -25,7 +32,7 @@ const LoginPage = () => {
   // register用于注册表单字段
   // handleSubmit用于处理表单提交
   // formState包含表单状态信息，如错误
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginData>();
   // 使用useDispatch钩子获取dispatch函数，用于触发Redux actions
   const dispatch = useDispatch<AppDispatch>();
   // 使用useRouter钩子获取router对象，用于页面导航
@@ -37,7 +44,7 @@ const LoginPage = () => {
   const error = useSelector(selectError);
   
   // 定义表单提交处理函数
-  const onSubmit = async (data: LoginRequest) => {
+  const onSubmit = async (data: LoginData) => {
     // 清除之前的错误信息
     dispatch(clearError());
     

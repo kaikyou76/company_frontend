@@ -1,14 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Clock,
-  MapPin,
-  CheckCircle,
-  AlertCircle,
-  Calendar,
-  BarChart3,
-} from "lucide-react";
+import { Clock, Users, Calendar, FileText, BarChart3, CheckCircle } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function AttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());

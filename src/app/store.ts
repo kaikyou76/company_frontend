@@ -3,7 +3,7 @@ import { configureStore, createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 // 从本地服务文件导入认证相关的API调用函数
 import { registerUser, checkUsername, logoutUser, refreshAccessToken, isTokenExpiringSoon, loginUser } from './services/authService';
 // 从本地类型定义ファイル导入认证相关的类型
-import { RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, User, AuthState, LogoutResponse } from './types/auth';
+import { RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, AuthState, LogoutResponse } from './types/auth';
 
 // AuthStateは既にtypes/auth.tsで定義されているため、ここでは削除
 
@@ -314,7 +314,7 @@ const authSlice = createSlice({
       state.error = null; // 以前のエラーメッセージをクリア
     });
 
-    builder.addCase(logoutUserAsync.fulfilled, (state, action) => { // ログアウトfulfilled状態（リクエスト成功）を処理
+    builder.addCase(logoutUserAsync.fulfilled, (state) => { // ログアウトfulfilled状態（リクエスト成功）を処理
       state.loading = false; // ローディング状態を終了
       
       // バックエンドが成功したかどうかに関わらず、フロントエンドは状態をクリアする必要があります

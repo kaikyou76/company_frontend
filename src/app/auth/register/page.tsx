@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 // 从react-redux导入useDispatch和useSelector钩子，用于与Redux交互
 import { useDispatch, useSelector } from "react-redux";
 // 从本地store文件导入AppDispatch和RootState类型
-import { AppDispatch, RootState } from "@/app/store";
+import { AppDispatch } from "@/app/store";
 // 从本地store文件导入registerUserAsync异步操作和选择器函数
 import {
   registerUserAsync,
@@ -35,12 +35,6 @@ interface CheckUsernameResponse {
   available: boolean;
   message: string;
   csrfError?: boolean;
-}
-
-// 定义Redux异步操作结果类型
-interface AsyncActionResult<T> {
-  payload: T;
-  type: string;
 }
 
 // 定义Redux拒绝操作结果类型
@@ -184,23 +178,20 @@ const RegisterPage = () => {
 
       // 登録が失敗した場合のCSRFエラーチェック
       if (registerUserAsync.rejected.match(result)) {
-        const errorPayload = result.payload as any;
-        if (
-          errorPayload?.csrfError ||
-          (errorPayload?.message &&
-            errorPayload.message.includes("セキュリティトークン"))
-        ) {
+        const errorPayload = result.payload as AsyncActionError | undefined;
+        if (errorPayload?.csrfError) {
           setCsrfError(
             "セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。"
           );
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("注册过程中出错:", error);
+      const err = error as Error;
       if (
-        error.message &&
-        (error.message.includes("CSRF") ||
-          error.message.includes("セキュリティトークン"))
+        err.message &&
+        (err.message.includes("CSRF") ||
+          err.message.includes("セキュリティトークン"))
       ) {
         setCsrfError(
           "セキュリティトークンの検証に失敗しました。ページを再読み込みしてください。"
