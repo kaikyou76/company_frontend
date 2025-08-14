@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Users, Calendar, FileText, BarChart3, CheckCircle } from "lucide-react";
+import { Clock, Users, Calendar, FileText, BarChart3, CheckCircle, MapPin } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
