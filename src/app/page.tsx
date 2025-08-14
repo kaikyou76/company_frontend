@@ -26,15 +26,17 @@ export default function LandingPage() {
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#features" className="text-gray-700 hover:text-blue-600">
-                機��E
+                機能
               </a>
               <a href="#pricing" className="text-gray-700 hover:text-blue-600">
-                料���
+                料金
               </a>
               <a href="#support" className="text-gray-700 hover:text-blue-600">
-                サポ��EチE              </a>
+                サポート
+              </a>
               <a href="#company" className="text-gray-700 hover:text-blue-600">
-                会社概要E              </a>
+                会社概要
+              </a>
             </nav>
             <div className="flex items-center space-x-4">
               <button className="text-gray-700 hover:text-blue-600">
@@ -44,43 +46,46 @@ export default function LandingPage() {
                 href="/auth/login"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                ダチE��ュボ��Eドを見る
+                ダッシュボードを見る
               </Link>
             </div>
           </div>
         </div>
       </header>
 
-      {/* ヒ��Eローセクション */}
+      {/* ヒーローセクション */}
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              次世代の勤怠管琁E��スチE��
+              次世代の勤怠管理サービス
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
-              GPS・顔認証のダブル打刻機��E、��E動勤務時間計算、位置惁E��・ソフト管琁E��で
-              すべてをクラウド��EラチE��フォームで効玁E��に管琁E            </p>
+              GPS・顔認証のダブル打刻機能、自動勤務時間計算、位置情報・ソフト管理・
+              すべてをクラウドベースのプラットフォームで効率的に管理
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-white text-blue-600 hover:bg-gray-50 px-8 py-4 rounded-lg font-semibold text-lg transition-colors">
-                今すぐ体験すめE              </button>
+                今すぐ体験する
+              </button>
               <button className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg transition-colors">
-                ダウンロードすめE              </button>
+                ダウンロードする
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 機��Eセクション */}
+      {/* 機能セクション */}
       <section id="features" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              允E��した機��E
+              先進した機能
             </h2>
             <p className="text-xl text-gray-600">
-              現代の働き方に対応した包括皁E��勤怠管琁E����E
+              現代の働き方に対応した包括的な勤怠管理システム
             </p>
           </div>
 
@@ -90,10 +95,10 @@ export default function LandingPage() {
                 <Clock className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                スマ��Eト打刻
+                スマート打刻
               </h3>
               <p className="text-gray-600">
-                GPS位置惁E��と顔認証を絁E��合わせた確実な打刻シスチE��
+                GPS位置情報と顔認証を組み合わせた確実な打刻システム
               </p>
             </div>
 
@@ -102,9 +107,10 @@ export default function LandingPage() {
                 <Users className="w-6 h-6 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                自動勤務時間計箁E              </h3>
+                自動勤務時間計算
+              </h3>
               <p className="text-gray-600">
-                残業時間・休��E時間を��E動で計算し、正確な勤務管琁E��実現
+                残業時間・休憩時間を自動で計算し、正確な勤務管理を実現
               </p>
             </div>
 
@@ -113,9 +119,11 @@ export default function LandingPage() {
                 <Calendar className="w-6 h-6 text-purple-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                休暇管琁E              </h3>
+                休暇管理
+              </h3>
               <p className="text-gray-600">
-                有給申請から承認まで、ワークフローを完��EチE��タル匁E              </p>
+                有給申請から承認まで、ワークフローを完璧なデジタル化
+              </p>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow">
@@ -123,9 +131,10 @@ export default function LandingPage() {
                 <FileText className="w-6 h-6 text-orange-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                ソフト管琁E              </h3>
+                ソフト管理
+              </h3>
               <p className="text-gray-600">
-                業務ソフトの使用時間を��E動で記録・刁E��
+                業務ソフトの使用時間を自動で記録・分析
               </p>
             </div>
 
@@ -134,9 +143,11 @@ export default function LandingPage() {
                 <BarChart3 className="w-6 h-6 text-red-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                在宁E��務対忁E              </h3>
+                在宅勤務対応
+              </h3>
               <p className="text-gray-600">
-                リモートワークにも対応した柔軟な勤怠管琁E              </p>
+                リモートワークにも対応した柔軟な勤怠管理
+              </p>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow">
@@ -144,29 +155,33 @@ export default function LandingPage() {
                 <Shield className="w-6 h-6 text-indigo-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                詳細レポ��EチE              </h3>
+                詳細レポート
+              </h3>
               <p className="text-gray-600">
-                多角的な刁E��レポ��Eトで労務管琁E��最適匁E              </p>
+                多角的な分析レポートで労務管理を最適化
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 効玁E��セクション */}
+      {/* 効率と正確性を両立 */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                効玁E��と正確性を両竁E              </h2>
+                効率と正確性を両立
+              </h2>
               <div className="space-y-6">
                 <div className="flex items-start space-x-4">
                   <CheckCircle className="w-6 h-6 text-blue-600 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      マルチデバイス対忁E                    </h3>
+                      マルチデバイス対応
+                    </h3>
                     <p className="text-gray-600">
-                      スマ��Eトフォン・PC・タブレチE��で利用可能
+                      スマートフォン・PC・タブレットで利用可能
                     </p>
                   </div>
                 </div>
@@ -177,17 +192,18 @@ export default function LandingPage() {
                       リアルタイム同期
                     </h3>
                     <p className="text-gray-600">
-                      全チE��イス間でリアルタイムにチE�Eタを同朁E                    </p>
+                      全デバイス間でリアルタイムにデータを同期
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
                   <CheckCircle className="w-6 h-6 text-blue-600 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      高度なセキュリチE��
+                      高度なセキュリティ
                     </h3>
                     <p className="text-gray-600">
-                      企業レベルのセキュリチE��で大刁E��チE�Eタを保護
+                      企業レベルのセキュリティで大規模データを保護
                     </p>
                   </div>
                 </div>
@@ -197,7 +213,7 @@ export default function LandingPage() {
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8">
                 <Image
                   src="https://placehold.co/500x400.png"
-                  alt="チ��Eムワーク"
+                  alt="チームワーク"
                   width={500}
                   height={400}
                   className="w-full h-auto rounded-lg shadow-lg"
@@ -212,14 +228,18 @@ export default function LandingPage() {
       <section className="py-20 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-white mb-4">
-            今すぐ始めませんか！E          </h2>
+            今すぐ始めませんか？
+          </h2>
           <p className="text-xl text-blue-100 mb-8">
-            モダンな勤怠管琁E��、チームの生産性を向上させましょぁE          </p>
+            モダンな勤怠管理で、チームの生産性を向上させましょう
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button className="bg-white text-blue-600 hover:bg-gray-50 px-8 py-4 rounded-lg font-semibold text-lg transition-colors">
-              無料体験を開姁E            </button>
+              無料体験を開く
+            </button>
             <button className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg transition-colors">
-              営業拁E��に相諁E            </button>
+              営業拡大に相談
+            </button>
           </div>
         </div>
       </section>
@@ -231,33 +251,34 @@ export default function LandingPage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">AttendanceHub</h3>
               <p className="text-gray-400">
-                次世代の勤怠管琁E��スチE��で、Eチ��Eムの生産性を最大化します、E              </p>
+                次世代の勤怠管理サービスで、チームの生産性を最大化します。
+              </p>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">機��E</h4>
+              <h4 className="text-lg font-semibold mb-4">機能</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>勤怠管琁E/li>
-                <li>ソフト管琁E/li>
-                <li>休暇管琁E/li>
-                <li>レポ��EチE/li>
+                <li><a href="#" className="hover:text-white transition-colors">勤怠管理</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">ソフト管理</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">休暇管理</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">レポート</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">サポ��EチE/h4>
+              <h4 className="text-lg font-semibold mb-4">サポート</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>ヘルプセンター</li>
-                <li>お問ぁE��わせ</li>
-                <li>マニュアル</li>
-                <li>FAQ</li>
+                <li><a href="#" className="hover:text-white transition-colors">ヘルプセンター</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">お問い合わせ</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">マニュアル</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">会社惁E��</h4>
+              <h4 className="text-lg font-semibold mb-4">会社情報</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>会社概要E/li>
-                <li>プライバシー</li>
-                <li>利用規紁E/li>
-                <li>お知らせ</li>
+                <li><a href="#" className="hover:text-white transition-colors">会社概要</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">プライバシー</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">利用規約</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">お知らせ</a></li>
               </ul>
             </div>
           </div>
