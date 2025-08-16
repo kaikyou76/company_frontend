@@ -80,11 +80,11 @@ export class HttpsTestUtils {
     } {
         return {
             development: {
-                apiUrl: 'http://localhost:8080/api',
-                secure: false
+                apiUrl: 'https://localhost:8443/api',
+                secure: true
             },
             production: {
-                apiUrl: 'https://your-domain.com:8443/api',
+                apiUrl: 'https://ec2-35-75-6-50.ap-northeast-1.compute.amazonaws.com/api',
                 secure: true
             }
         };

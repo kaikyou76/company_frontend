@@ -40,12 +40,12 @@ class CsrfService {
     if (typeof window !== 'undefined') {
       const isHttps = window.location.protocol === 'https:';
       if (isHttps && environment === 'production') {
-        return 'https://ec2-35-75-6-50.ap-northeast-1.compute.amazonaws.com:8443/api';
+        return 'https://ec2-35-75-6-50.ap-northeast-1.compute.amazonaws.com/api';
       }
     }
 
     // デフォルトは開発環境
-    return 'http://localhost:8080/api';
+    return 'https://localhost:8443/api';
   }
 
   /**

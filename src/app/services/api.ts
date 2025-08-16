@@ -30,7 +30,7 @@ function getCsrfTokenFromCookie(): string | null {
 // 通过axios.create()创建的实例继承了axios的所有方法，包括get、post、put、delete等
 const api = axios.create({
   // 从环境变量获取API基础URL，如果没有则使用默认値
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:8443/api',
   // 设置请求超时时间为10秒
   timeout: 10000,
   // 添加withCredentials以支持跨域请求時发送cookies
@@ -47,18 +47,18 @@ api.interceptors.request.use(
     // 在发送请求之前做些什么
     // 从localStorage中获取token（仅在浏览器环境中）
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    
+
     // 検查令牌是否即将過期（5分間内）
     if (token && isTokenExpiringSoon(token, 300)) {
       // 从Redux store获取当前状态
       const state = store.getState();
-      
+
       // 如果有刷新トークン，则嘗試刷新アクセストークン
       if (state.auth.refreshToken) {
         try {
           // 調用チェックと刷新トークンの異步操作
           const result = await store.dispatch(checkAndRefreshTokenAsync());
-          
+
           // 如果刷新成功，更新config中のAuthorization頭
           if (checkAndRefreshTokenAsync.fulfilled.match(result) && result.payload) {
             if (result.payload.token) {
@@ -80,12 +80,12 @@ api.interceptors.request.use(
       try {
         // Cookieから直接CSRFトークンを取得（最優先）
         let csrfToken = getCsrfTokenFromCookie();
-        
+
         // Cookieにない場合はサービスから取得
         if (!csrfToken) {
           csrfToken = await csrfService.getCsrfToken();
         }
-        
+
         // Spring SecurityのデフォルトCSRFヘッダー名を使用
         if (csrfToken) {
           config.headers['X-XSRF-TOKEN'] = csrfToken;
@@ -146,7 +146,7 @@ api.interceptors.response.use(
 
     // 403エラーの場合、かつリトライ回数が上限に達していない場合にCSRFトークンを再取得してリクエストを再試行
     if (error.response?.status === 403 && !originalRequest._retry &&
-        !(originalRequest.retryCount > 0)) { // 最大1回のリトライのみ許可
+      !(originalRequest.retryCount > 0)) { // 最大1回のリトライのみ許可
       console.log('403エラー検出、CSRFトークンを再取得します');
       console.log('元のリクエスト:', {
         url: originalRequest.url,
