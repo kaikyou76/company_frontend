@@ -21,7 +21,31 @@ class CsrfService {
   private readonly baseURL: string;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
+    this.baseURL = this.getApiBaseUrl();
+  }
+
+  /**
+   * 環境に応じたAPI Base URLを取得
+   */
+  private getApiBaseUrl(): string {
+    const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'development';
+
+    // 環境変数が設定されている場合はそれを使用
+    if (envUrl) {
+      return envUrl;
+    }
+
+    // フォールバック: 現在のプロトコルに基づいて自動判定
+    if (typeof window !== 'undefined') {
+      const isHttps = window.location.protocol === 'https:';
+      if (isHttps && environment === 'production') {
+        return 'https://ec2-35-75-6-50.ap-northeast-1.compute.amazonaws.com:8443/api';
+      }
+    }
+
+    // デフォルトは開発環境
+    return 'http://localhost:8080/api';
   }
 
   /**
@@ -83,6 +107,8 @@ class CsrfService {
         }
 
         console.log('CSRFトークン取得成功:', this.token);
+        console.log('使用したエンドポイント:', this.baseURL + '/csrf/token');
+        console.log('現在のプロトコル:', typeof window !== 'undefined' ? window.location.protocol : 'N/A');
         return this.token;
       } else {
         throw new Error(response.data.message || 'CSRFトークンの取得に失敗しました');
@@ -107,8 +133,19 @@ class CsrfService {
           errorMessage = response.data.message;
         }
       } else if (error && typeof error === 'object' && 'request' in error) {
-        // ネットワークエラー
-        errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
+        // ネットワークエラー（混合コンテンツエラーを含む）
+        const axiosError = error as any;
+        if (axiosError.code === 'ERR_NETWORK') {
+          // 混合コンテンツエラーの可能性を検出
+          if (typeof window !== 'undefined' && window.location.protocol === 'https:' &&
+            this.baseURL.startsWith('http:')) {
+            errorMessage = '混合コンテンツエラー: HTTPSページからHTTPリクエストはブロックされます。サーバーのHTTPS設定を確認してください。';
+          } else {
+            errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
+          }
+        } else {
+          errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
+        }
       }
 
       throw new Error(errorMessage);
