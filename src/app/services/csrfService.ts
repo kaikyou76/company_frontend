@@ -31,8 +31,11 @@ class CsrfService {
     const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'development';
 
+    console.log('環境変数チェック:', { envUrl, environment });
+
     // 環境変数が設定されている場合はそれを使用
     if (envUrl) {
+      console.log('環境変数からURLを使用:', envUrl);
       return envUrl;
     }
 
@@ -45,6 +48,7 @@ class CsrfService {
     }
 
     // デフォルトは開発環境
+    console.log('デフォルトの開発環境URLを使用');
     return 'https://localhost:8443/api';
   }
 
