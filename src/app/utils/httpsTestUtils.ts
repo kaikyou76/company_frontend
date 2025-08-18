@@ -80,7 +80,7 @@ export class HttpsTestUtils {
     } {
         return {
             development: {
-                apiUrl: 'https://localhost:8443/api',
+                apiUrl: 'https://localhost:443/api',
                 secure: true
             },
             production: {

@@ -28,14 +28,14 @@ function getCsrfTokenFromCookie(): string | null {
 
 console.log('APIサービス初期化:', {
   envBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
-  fallbackUrl: 'https://localhost:8443/api'
+  fallbackUrl: 'https://localhost:443/api'
 });
 
 // 创建axios实例，配置基础URL和超时时间
 // 通过axios.create()创建的实例继承了axios的所有方法，包括get、post、put、delete等
 const api = axios.create({
   // 从环境变量获取API基础URL，如果没有则使用默认値
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:8443/api',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:443/api',
   // 设置请求超时时间为10秒
   timeout: 10000,
   // 添加withCredentials以支持跨域请求時发送cookies
