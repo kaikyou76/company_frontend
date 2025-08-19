@@ -43,7 +43,7 @@ class CsrfService {
     if (typeof window !== 'undefined') {
       const isHttps = window.location.protocol === 'https:';
       if (isHttps && environment === 'production') {
-        return 'https://ec2-35-75-6-50.ap-northeast-1.compute.amazonaws.com/api';
+        return 'https://www.kaikyou.dpdns.org/api';
       }
     }
 
@@ -136,20 +136,6 @@ class CsrfService {
         } else if (response.data?.message) {
           errorMessage = response.data.message;
         }
-      } else if (error && typeof error === 'object' && 'request' in error) {
-        // ネットワークエラー（混合コンテンツエラーを含む）
-        const axiosError = error as any;
-        if (axiosError.code === 'ERR_NETWORK') {
-          // 混合コンテンツエラーの可能性を検出
-          if (typeof window !== 'undefined' && window.location.protocol === 'https:' &&
-            this.baseURL.startsWith('http:')) {
-            errorMessage = '混合コンテンツエラー: HTTPSページからHTTPリクエストはブロックされます。サーバーのHTTPS設定を確認してください。';
-          } else {
-            errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
-          }
-        } else {
-          errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
-        }
       }
 
       throw new Error(errorMessage);
@@ -200,21 +186,20 @@ class CsrfService {
    * CookieからCSRFトークンを取得
    */
   private getCsrfTokenFromCookie(): string | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
+    if (typeof document === 'undefined') return null;
 
-    const cookies = document.cookie.split(';');
-
-    for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'XSRF-TOKEN') {
-        console.log(`Cookie発見: ${name} = ${value ? value.substring(0, 10) + '...' : 'empty'}`);
-        return decodeURIComponent(value || '');
+    const name = 'XSRF-TOKEN=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) === 0) {
+        return c.substring(name.length, c.length);
       }
     }
-
-    console.log('XSRF-TOKEN Cookieが見つかりません');
     return null;
   }
 
