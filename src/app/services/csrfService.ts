@@ -43,7 +43,7 @@ class CsrfService {
     if (typeof window !== 'undefined') {
       const isHttps = window.location.protocol === 'https:';
       if (isHttps && environment === 'production') {
-        return 'https://www.kaikyou.dpdns.org/api';
+        return 'https://api.kaikyou.dpdns.org';
       }
     }
 

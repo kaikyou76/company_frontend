@@ -51,7 +51,7 @@ class ApiClient {
    */
   private getDefaultBaseUrl(environment: string): string {
     if (environment === 'production') {
-      return 'https://www.kaikyou.dpdns.org/api';
+      return 'https://api.kaikyou.dpdns.org';
     }
     return 'https://localhost:443/api';
   }
