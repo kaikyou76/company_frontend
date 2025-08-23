@@ -53,7 +53,7 @@ class ApiClient {
     if (environment === 'production') {
       return 'https://api.kaikyou.dpdns.org';
     }
-    return 'https://localhost:443/api';
+    return 'http://localhost:8080';
   }
 
   /**

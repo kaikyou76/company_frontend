@@ -49,7 +49,7 @@ class CsrfService {
 
     // デフォルトは開発環境
     console.log('デフォルトの開発環境URLを使用');
-    return 'https://localhost:443/api';
+    return 'http://localhost:8080';
   }
 
   /**
